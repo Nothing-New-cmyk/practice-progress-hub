@@ -8,16 +8,6 @@ import { FormInput } from '@/components/ui/form-input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 
-interface WeeklyGoal {
-  id: string;
-  week_start_date: string;
-  goal_description: string;
-  target_value: number;
-  current_value: number;
-  status: string;
-  review_notes: string;
-}
-
 export const WeeklyGoals = () => {
   const { user } = useAuth();
   const { toast } = useToast();
