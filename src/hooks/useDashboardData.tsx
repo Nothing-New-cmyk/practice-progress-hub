@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseClient } from '@/lib/supabase-utils';
 
 interface WeeklySummary {
   problemsThisWeek: number;
@@ -32,16 +32,16 @@ export const useDashboardData = () => {
 
       try {
         // Fetch problems and hours this week
-        const { data: weeklyLogs } = await supabase
-          .from('daily_logs' as any)
+        const { data: weeklyLogs } = await supabaseClient
+          .from('daily_logs')
           .select('problems_solved, time_spent_minutes')
           .eq('user_id', user.id)
           .gte('date', startOfWeek.toISOString().split('T')[0])
           .lte('date', endOfWeek.toISOString().split('T')[0]);
 
         // Fetch badges
-        const { data: badges } = await supabase
-          .from('user_badges' as any)
+        const { data: badges } = await supabaseClient
+          .from('user_badges')
           .select('id')
           .eq('user_id', user.id);
 

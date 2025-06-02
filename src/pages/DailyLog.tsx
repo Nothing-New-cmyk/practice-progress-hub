@@ -1,7 +1,6 @@
-
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseClient } from '@/lib/supabase-utils';
 import { Navbar } from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,8 +49,8 @@ export const DailyLog = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase
-        .from('daily_logs' as any)
+      const { error } = await supabaseClient
+        .from('daily_logs')
         .insert({
           user_id: user.id,
           date,

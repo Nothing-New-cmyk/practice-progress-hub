@@ -1,27 +1,12 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseClient, Profile, NotificationPreference } from '@/lib/supabase-utils';
 import { Navbar } from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FormInput } from '@/components/ui/form-input';
 import { FormSelect } from '@/components/ui/form-select';
 import { useToast } from '@/hooks/use-toast';
-
-interface Profile {
-  first_name: string;
-  last_name: string;
-  time_zone: string;
-}
-
-interface NotificationPreference {
-  id: string;
-  channel: string;
-  type: string;
-  enabled: boolean;
-  delivery_time: string;
-}
 
 const timezoneOptions = [
   { value: 'UTC', label: 'UTC' },
@@ -35,7 +20,7 @@ export const Settings = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [profile, setProfile] = useState<Profile>({
+  const [profile, setProfile] = useState<Partial<Profile>>({
     first_name: '',
     last_name: '',
     time_zone: 'UTC',
@@ -46,8 +31,8 @@ export const Settings = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('profiles' as any)
+      const { data, error } = await supabaseClient
+        .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
@@ -63,8 +48,8 @@ export const Settings = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('notification_preferences' as any)
+      const { data, error } = await supabaseClient
+        .from('notification_preferences')
         .select('*')
         .eq('user_id', user.id);
 
@@ -87,8 +72,8 @@ export const Settings = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase
-        .from('profiles' as any)
+      const { error } = await supabaseClient
+        .from('profiles')
         .update({
           first_name: profile.first_name,
           last_name: profile.last_name,
@@ -118,8 +103,8 @@ export const Settings = () => {
     if (!user) return;
 
     try {
-      const { error } = await supabase
-        .from('notification_preferences' as any)
+      const { error } = await supabaseClient
+        .from('notification_preferences')
         .update({ enabled })
         .eq('id', preferenceId)
         .eq('user_id', user.id);
@@ -163,14 +148,14 @@ export const Settings = () => {
                     <FormInput
                       label="First Name"
                       id="firstName"
-                      value={profile.first_name}
+                      value={profile.first_name || ''}
                       onChange={(value) => setProfile({ ...profile, first_name: value })}
                       required
                     />
                     <FormInput
                       label="Last Name"
                       id="lastName"
-                      value={profile.last_name}
+                      value={profile.last_name || ''}
                       onChange={(value) => setProfile({ ...profile, last_name: value })}
                       required
                     />
@@ -178,7 +163,7 @@ export const Settings = () => {
                   <FormSelect
                     label="Time Zone"
                     id="timeZone"
-                    value={profile.time_zone}
+                    value={profile.time_zone || 'UTC'}
                     onChange={(value) => setProfile({ ...profile, time_zone: value })}
                     options={timezoneOptions}
                     required

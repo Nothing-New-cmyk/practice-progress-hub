@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseClient, WeeklyGoal } from '@/lib/supabase-utils';
 import { Navbar } from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,8 +35,8 @@ export const WeeklyGoals = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('weekly_goals' as any)
+      const { data, error } = await supabaseClient
+        .from('weekly_goals')
         .select('*')
         .eq('user_id', user.id)
         .order('week_start_date', { ascending: false });
@@ -60,8 +59,8 @@ export const WeeklyGoals = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase
-        .from('weekly_goals' as any)
+      const { error } = await supabaseClient
+        .from('weekly_goals')
         .insert({
           user_id: user.id,
           week_start_date: weekStartDate,
@@ -97,8 +96,8 @@ export const WeeklyGoals = () => {
     if (!user) return;
 
     try {
-      const { error } = await supabase
-        .from('weekly_goals' as any)
+      const { error } = await supabaseClient
+        .from('weekly_goals')
         .update({ review_notes: reviewNotes })
         .eq('id', goalId)
         .eq('user_id', user.id);
