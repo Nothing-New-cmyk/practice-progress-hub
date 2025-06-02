@@ -9,7 +9,228 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      contest_logs: {
+        Row: {
+          contest_name: string
+          contest_url: string | null
+          created_at: string
+          date: string
+          id: string
+          next_steps: string | null
+          notes: string | null
+          platform: string
+          problems_solved: number
+          rank: number | null
+          time_score: string | null
+          total_participants: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contest_name: string
+          contest_url?: string | null
+          created_at?: string
+          date: string
+          id?: string
+          next_steps?: string | null
+          notes?: string | null
+          platform: string
+          problems_solved?: number
+          rank?: number | null
+          time_score?: string | null
+          total_participants?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contest_name?: string
+          contest_url?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          next_steps?: string | null
+          notes?: string | null
+          platform?: string
+          problems_solved?: number
+          rank?: number | null
+          time_score?: string | null
+          total_participants?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      daily_logs: {
+        Row: {
+          created_at: string
+          date: string
+          difficulty: string
+          id: string
+          next_steps: string | null
+          notes: string | null
+          platform: string
+          problem_url: string | null
+          problems_solved: number
+          resources: string[] | null
+          time_spent_minutes: number
+          topic: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          difficulty: string
+          id?: string
+          next_steps?: string | null
+          notes?: string | null
+          platform: string
+          problem_url?: string | null
+          problems_solved?: number
+          resources?: string[] | null
+          time_spent_minutes?: number
+          topic: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          difficulty?: string
+          id?: string
+          next_steps?: string | null
+          notes?: string | null
+          platform?: string
+          problem_url?: string | null
+          problems_solved?: number
+          resources?: string[] | null
+          time_spent_minutes?: number
+          topic?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_preferences: {
+        Row: {
+          channel: string
+          created_at: string
+          delivery_time: string
+          enabled: boolean
+          id: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          delivery_time?: string
+          enabled?: boolean
+          id?: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          delivery_time?: string
+          enabled?: boolean
+          id?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          time_zone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+          time_zone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          time_zone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_badges: {
+        Row: {
+          badge_id: string
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          badge_id: string
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          badge_id?: string
+          earned_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      weekly_goals: {
+        Row: {
+          created_at: string
+          current_value: number
+          goal_description: string
+          id: string
+          review_notes: string | null
+          status: string
+          target_value: number
+          updated_at: string
+          user_id: string
+          week_start_date: string
+        }
+        Insert: {
+          created_at?: string
+          current_value?: number
+          goal_description: string
+          id?: string
+          review_notes?: string | null
+          status?: string
+          target_value: number
+          updated_at?: string
+          user_id: string
+          week_start_date: string
+        }
+        Update: {
+          created_at?: string
+          current_value?: number
+          goal_description?: string
+          id?: string
+          review_notes?: string | null
+          status?: string
+          target_value?: number
+          updated_at?: string
+          user_id?: string
+          week_start_date?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
