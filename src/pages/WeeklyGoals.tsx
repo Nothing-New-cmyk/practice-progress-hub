@@ -8,8 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FormInput } from '@/components/ui/form-input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
 
 interface WeeklyGoal {
   id: string;
@@ -17,67 +15,58 @@ interface WeeklyGoal {
   goal_description: string;
   target_value: number;
   current_value: number;
-  status: 'in_progress' | 'completed' | 'missed';
-  review_notes: string | null;
+  status: string;
+  review_notes: string;
 }
 
 export const WeeklyGoals = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  
+  const [loading, setLoading] = useState(false);
   const [goals, setGoals] = useState<WeeklyGoal[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [editingGoal, setEditingGoal] = useState<WeeklyGoal | null>(null);
-  
-  const [formData, setFormData] = useState({
-    weekStartDate: '',
-    goalDescription: '',
-    targetValue: '',
-  });
-
+  const [showReviewModal, setShowReviewModal] = useState<string | null>(null);
   const [reviewNotes, setReviewNotes] = useState('');
 
-  useEffect(() => {
-    fetchGoals();
-  }, [user]);
+  // Form state
+  const [weekStartDate, setWeekStartDate] = useState('');
+  const [goalDescription, setGoalDescription] = useState('');
+  const [targetValue, setTargetValue] = useState('');
 
   const fetchGoals = async () => {
     if (!user) return;
 
     try {
       const { data, error } = await supabase
-        .from('weekly_goals')
+        .from('weekly_goals' as any)
         .select('*')
         .eq('user_id', user.id)
         .order('week_start_date', { ascending: false });
 
       if (error) throw error;
       setGoals(data || []);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch weekly goals",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching goals:', error);
     }
   };
 
+  useEffect(() => {
+    fetchGoals();
+  }, [user]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
+    if (!user) return;
+
+    setLoading(true);
 
     try {
       const { error } = await supabase
-        .from('weekly_goals')
+        .from('weekly_goals' as any)
         .insert({
-          user_id: user!.id,
-          week_start_date: formData.weekStartDate,
-          goal_description: formData.goalDescription,
-          target_value: parseInt(formData.targetValue),
+          user_id: user.id,
+          week_start_date: weekStartDate,
+          goal_description: goalDescription,
+          target_value: parseInt(targetValue) || 0,
         });
 
       if (error) throw error;
@@ -87,30 +76,32 @@ export const WeeklyGoals = () => {
         description: "Weekly goal created successfully!",
       });
 
-      setFormData({ weekStartDate: '', goalDescription: '', targetValue: '' });
-      setShowForm(false);
+      // Reset form and refresh goals
+      setWeekStartDate('');
+      setGoalDescription('');
+      setTargetValue('');
       fetchGoals();
-    } catch (error: any) {
+    } catch (error) {
+      console.error('Error creating goal:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to create weekly goal",
+        description: "Failed to create goal. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
 
-  const handleUpdateReview = async () => {
-    if (!editingGoal) return;
-
-    setSaving(true);
+  const handleReviewUpdate = async (goalId: string) => {
+    if (!user) return;
 
     try {
       const { error } = await supabase
-        .from('weekly_goals')
+        .from('weekly_goals' as any)
         .update({ review_notes: reviewNotes })
-        .eq('id', editingGoal.id);
+        .eq('id', goalId)
+        .eq('user_id', user.id);
 
       if (error) throw error;
 
@@ -119,191 +110,159 @@ export const WeeklyGoals = () => {
         description: "Review notes updated successfully!",
       });
 
-      setEditingGoal(null);
+      setShowReviewModal(null);
       setReviewNotes('');
       fetchGoals();
-    } catch (error: any) {
+    } catch (error) {
+      console.error('Error updating review:', error);
       toast({
         title: "Error",
-        description: "Failed to update review notes",
+        description: "Failed to update review. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setSaving(false);
     }
   };
 
-  const getStatusBadge = (status: WeeklyGoal['status']) => {
-    const variants = {
-      in_progress: 'default',
-      completed: 'success',
-      missed: 'destructive',
-    } as const;
-
-    return (
-      <Badge variant={variants[status] || 'default'}>
-        {status.replace('_', ' ')}
-      </Badge>
-    );
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'text-green-600';
+      case 'missed': return 'text-red-600';
+      default: return 'text-yellow-600';
+    }
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <main className="md:ml-64 p-6">
-        <div className="mb-8 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold">Weekly Goals</h1>
-            <p className="text-muted-foreground">Set and track your weekly objectives</p>
-          </div>
-          <Button onClick={() => setShowForm(true)}>
-            Create New Goal
-          </Button>
-        </div>
+      <div className="md:ml-64 p-8">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-2xl font-bold mb-6">Weekly Goals</h1>
 
-        {showForm && (
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>Create Weekly Goal</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Create Goal Form */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Create New Goal</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-4">
                   <FormInput
                     label="Week Start Date"
                     id="weekStartDate"
                     type="date"
-                    value={formData.weekStartDate}
-                    onChange={(value) => setFormData({...formData, weekStartDate: value})}
+                    value={weekStartDate}
+                    onChange={setWeekStartDate}
+                    required
+                  />
+                  <FormInput
+                    label="Goal Description"
+                    id="goalDescription"
+                    value={goalDescription}
+                    onChange={setGoalDescription}
+                    placeholder="e.g., Solve 20 problems this week"
                     required
                   />
                   <FormInput
                     label="Target Value"
                     id="targetValue"
                     type="number"
-                    value={formData.targetValue}
-                    onChange={(value) => setFormData({...formData, targetValue: value})}
-                    placeholder="e.g., 20 problems"
+                    value={targetValue}
+                    onChange={setTargetValue}
+                    placeholder="20"
                     required
                   />
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? "Creating..." : "Create Goal"}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            {/* Goals List */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Your Goals</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {goals.length === 0 ? (
+                    <p className="text-gray-500 text-center py-4">
+                      No goals created yet. Create your first goal!
+                    </p>
+                  ) : (
+                    goals.map((goal) => (
+                      <div key={goal.id} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="font-semibold">{goal.goal_description}</h3>
+                          <span className={`text-sm font-medium ${getStatusColor(goal.status)}`}>
+                            {goal.status.replace('_', ' ')}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2">
+                          Week of {new Date(goal.week_start_date).toLocaleDateString()}
+                        </p>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">
+                            Progress: {goal.current_value} / {goal.target_value}
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setShowReviewModal(goal.id);
+                              setReviewNotes(goal.review_notes || '');
+                            }}
+                          >
+                            Review
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
-                
-                <div>
-                  <label htmlFor="goalDescription" className="block text-sm font-medium mb-2">
-                    Goal Description *
-                  </label>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Review Modal */}
+          {showReviewModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <Card className="w-full max-w-md">
+                <CardHeader>
+                  <CardTitle>Review Notes</CardTitle>
+                </CardHeader>
+                <CardContent>
                   <Textarea
-                    id="goalDescription"
-                    value={formData.goalDescription}
-                    onChange={(e) => setFormData({...formData, goalDescription: e.target.value})}
-                    placeholder="e.g., Solve 20 medium difficulty problems focusing on dynamic programming"
-                    required
-                    rows={3}
+                    value={reviewNotes}
+                    onChange={(e) => setReviewNotes(e.target.value)}
+                    placeholder="Add your review notes..."
+                    rows={4}
+                    className="mb-4"
                   />
-                </div>
-
-                <div className="flex gap-4">
-                  <Button type="submit" disabled={saving}>
-                    {saving ? "Creating..." : "Create Goal"}
-                  </Button>
-                  <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        )}
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Your Weekly Goals</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {goals.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8">
-                No weekly goals created yet. Create your first goal to get started!
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2">Week Start</th>
-                      <th className="text-left py-2">Description</th>
-                      <th className="text-left py-2">Target</th>
-                      <th className="text-left py-2">Current</th>
-                      <th className="text-left py-2">Status</th>
-                      <th className="text-left py-2">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {goals.map((goal) => (
-                      <tr key={goal.id} className="border-b">
-                        <td className="py-3">{goal.week_start_date}</td>
-                        <td className="py-3 max-w-xs truncate">{goal.goal_description}</td>
-                        <td className="py-3">{goal.target_value}</td>
-                        <td className="py-3">{goal.current_value}</td>
-                        <td className="py-3">{getStatusBadge(goal.status)}</td>
-                        <td className="py-3">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setEditingGoal(goal);
-                                  setReviewNotes(goal.review_notes || '');
-                                }}
-                              >
-                                Review
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Review Goal</DialogTitle>
-                              </DialogHeader>
-                              <div className="space-y-4">
-                                <div>
-                                  <p><strong>Goal:</strong> {goal.goal_description}</p>
-                                  <p><strong>Progress:</strong> {goal.current_value} / {goal.target_value}</p>
-                                </div>
-                                <div>
-                                  <label htmlFor="reviewNotes" className="block text-sm font-medium mb-2">
-                                    Review Notes
-                                  </label>
-                                  <Textarea
-                                    id="reviewNotes"
-                                    value={reviewNotes}
-                                    onChange={(e) => setReviewNotes(e.target.value)}
-                                    placeholder="How did this week go? What did you learn?"
-                                    rows={4}
-                                  />
-                                </div>
-                                <Button onClick={handleUpdateReview} disabled={saving}>
-                                  {saving ? "Saving..." : "Save Review"}
-                                </Button>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </main>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => handleReviewUpdate(showReviewModal)}
+                      className="flex-1"
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowReviewModal(null);
+                        setReviewNotes('');
+                      }}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

@@ -33,7 +33,7 @@ export const useDashboardData = () => {
       try {
         // Fetch problems and hours this week
         const { data: weeklyLogs } = await supabase
-          .from('daily_logs')
+          .from('daily_logs' as any)
           .select('problems_solved, time_spent_minutes')
           .eq('user_id', user.id)
           .gte('date', startOfWeek.toISOString().split('T')[0])
@@ -41,13 +41,13 @@ export const useDashboardData = () => {
 
         // Fetch badges
         const { data: badges } = await supabase
-          .from('user_badges')
+          .from('user_badges' as any)
           .select('id')
           .eq('user_id', user.id);
 
         // Calculate summary
-        const problemsThisWeek = weeklyLogs?.reduce((sum, log) => sum + log.problems_solved, 0) || 0;
-        const hoursThisWeek = Math.round((weeklyLogs?.reduce((sum, log) => sum + log.time_spent_minutes, 0) || 0) / 60);
+        const problemsThisWeek = weeklyLogs?.reduce((sum: number, log: any) => sum + (log.problems_solved || 0), 0) || 0;
+        const hoursThisWeek = Math.round((weeklyLogs?.reduce((sum: number, log: any) => sum + (log.time_spent_minutes || 0), 0) || 0) / 60);
         const badgesEarned = badges?.length || 0;
 
         setSummary({
