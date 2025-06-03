@@ -1,6 +1,10 @@
 
-import { Navbar } from '@/components/Navbar';
-import { StatsCard } from '@/components/ui/stats-card';
+import { AppLayout } from '@/components/layouts/AppLayout';
+import { SectionHeader } from '@/components/ui/section-header';
+import { EnhancedCard } from '@/components/ui/enhanced-card';
+import { AnimatedCounter } from '@/components/ui/animated-counter';
+import { EnhancedProgress } from '@/components/ui/enhanced-progress';
+import { EnhancedBadge } from '@/components/ui/enhanced-badge';
 import { StreakCounter } from '@/components/ui/streak-counter';
 import { DifficultyChart } from '@/components/charts/DifficultyChart';
 import { ActivityHeatmap } from '@/components/charts/ActivityHeatmap';
@@ -10,23 +14,34 @@ import { TopicProgress } from '@/components/features/TopicProgress';
 import { StudyTimer } from '@/components/features/StudyTimer';
 import { Achievements } from '@/components/features/Achievements';
 import { QuickLogger } from '@/components/features/QuickLogger';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useDashboardData } from '@/hooks/useDashboardData';
-import { Target, Clock, Award, TrendingUp, Calendar, BookOpen, Zap, Brain, Trophy } from 'lucide-react';
+import { 
+  Target, 
+  Clock, 
+  Award, 
+  TrendingUp, 
+  Calendar, 
+  BookOpen, 
+  Zap, 
+  Brain, 
+  Trophy,
+  BarChart3,
+  CheckCircle,
+  AlertCircle,
+  Star
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const Dashboard = () => {
   const { summary, loading } = useDashboardData();
 
-  // Use real data for difficulty chart
   const difficultyData = [
     { difficulty: 'Easy', count: Math.floor(summary.totalProblems * 0.5), color: '#10B981' },
     { difficulty: 'Medium', count: Math.floor(summary.totalProblems * 0.35), color: '#F59E0B' },
     { difficulty: 'Hard', count: Math.floor(summary.totalProblems * 0.15), color: '#EF4444' }
   ];
 
-  // Mock heatmap data - in production, this would be calculated from daily logs
   const heatmapData = [
     { date: '2024-05-01', count: 3, level: 2 as const },
     { date: '2024-05-02', count: 5, level: 3 as const },
@@ -35,67 +50,142 @@ export const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
+      <AppLayout showFAB={false}>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="text-muted-foreground">Loading your dashboard...</p>
+          </div>
+        </div>
+      </AppLayout>
     );
   }
 
   const weeklyGoalProgress = summary.totalGoals > 0 ? Math.round((summary.completedGoals / summary.totalGoals) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      <Navbar />
-      <main className="md:ml-64 p-3 md:p-6">
+    <AppLayout>
+      <div className="p-4 md:p-6 space-y-8">
         {/* Header */}
-        <div className="mb-6 md:mb-8">
-          <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            Dashboard
-          </h1>
-          <p className="text-muted-foreground mt-2 text-sm md:text-base">Track your DSA progress and achievements</p>
-        </div>
+        <SectionHeader
+          title="Dashboard"
+          subtitle="Track your DSA progress and achievements"
+          icon={BarChart3}
+        />
 
         {/* Key Metrics */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
-          <StatsCard
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          <EnhancedCard
             title="Problems This Week"
-            value={summary.problemsThisWeek}
-            subtitle="Keep the momentum going!"
-            progress={Math.min((summary.problemsThisWeek / 20) * 100, 100)}
-            trend="up"
-            trendValue="+12%"
-            color="primary"
-          />
-          <StatsCard
+            icon={Target}
+            iconColor="bg-blue-100 text-blue-600"
+            gradient
+            hover
+          >
+            <div className="space-y-3">
+              <div className="flex items-baseline gap-2">
+                <AnimatedCounter 
+                  value={summary.problemsThisWeek} 
+                  className="text-3xl font-bold text-blue-600"
+                />
+                <span className="text-sm text-muted-foreground">problems</span>
+              </div>
+              <EnhancedProgress
+                value={summary.problemsThisWeek}
+                max={20}
+                variant="default"
+                size="sm"
+                animated
+              />
+              <div className="flex items-center gap-2">
+                <EnhancedBadge variant="success" size="sm" icon={TrendingUp}>
+                  +12%
+                </EnhancedBadge>
+                <span className="text-xs text-muted-foreground">vs last week</span>
+              </div>
+            </div>
+          </EnhancedCard>
+
+          <EnhancedCard
             title="Time This Week"
-            value={`${summary.hoursThisWeek}h`}
-            subtitle="Focused practice time"
             icon={Clock}
-            trend="up"
-            trendValue="+8%"
-            color="success"
-          />
-          <StatsCard
+            iconColor="bg-green-100 text-green-600"
+            gradient
+            hover
+          >
+            <div className="space-y-3">
+              <div className="flex items-baseline gap-2">
+                <AnimatedCounter 
+                  value={summary.hoursThisWeek} 
+                  className="text-3xl font-bold text-green-600"
+                />
+                <span className="text-sm text-muted-foreground">hours</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <EnhancedBadge variant="success" size="sm" icon={TrendingUp}>
+                  +8%
+                </EnhancedBadge>
+                <span className="text-xs text-muted-foreground">focused practice</span>
+              </div>
+            </div>
+          </EnhancedCard>
+
+          <EnhancedCard
             title="Weekly Goals"
-            value={`${weeklyGoalProgress}%`}
-            subtitle={`${summary.completedGoals}/${summary.totalGoals} completed`}
-            progress={weeklyGoalProgress}
-            color="warning"
-          />
-          <StatsCard
+            icon={CheckCircle}
+            iconColor="bg-yellow-100 text-yellow-600"
+            gradient
+            hover
+          >
+            <div className="space-y-3">
+              <div className="flex items-baseline gap-2">
+                <AnimatedCounter 
+                  value={weeklyGoalProgress} 
+                  suffix="%" 
+                  className="text-3xl font-bold text-yellow-600"
+                />
+                <span className="text-sm text-muted-foreground">complete</span>
+              </div>
+              <EnhancedProgress
+                value={weeklyGoalProgress}
+                variant="warning"
+                size="sm"
+                animated
+              />
+              <span className="text-xs text-muted-foreground">
+                {summary.completedGoals}/{summary.totalGoals} goals achieved
+              </span>
+            </div>
+          </EnhancedCard>
+
+          <EnhancedCard
             title="Total Solved"
-            value={summary.totalProblems}
-            subtitle="All time problems"
             icon={Award}
-            trend="up"
-            trendValue="+5"
-            color="success"
-          />
+            iconColor="bg-purple-100 text-purple-600"
+            gradient
+            hover
+          >
+            <div className="space-y-3">
+              <div className="flex items-baseline gap-2">
+                <AnimatedCounter 
+                  value={summary.totalProblems} 
+                  className="text-3xl font-bold text-purple-600"
+                />
+                <span className="text-sm text-muted-foreground">problems</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <EnhancedBadge variant="success" size="sm" icon={TrendingUp}>
+                  +5
+                </EnhancedBadge>
+                <span className="text-xs text-muted-foreground">all time</span>
+              </div>
+            </div>
+          </EnhancedCard>
         </div>
 
         {/* First Row - Essential Features */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
-          <div className="lg:col-span-2 space-y-4 md:space-y-6">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="xl:col-span-2 space-y-6">
             <StreakCounter 
               currentStreak={summary.currentStreak} 
               longestStreak={15}
@@ -103,162 +193,199 @@ export const Dashboard = () => {
             <QuickLogger />
           </div>
           
-          <div className="space-y-4 md:space-y-6">
+          <div className="space-y-6">
             <StudyTimer />
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base md:text-lg">
-                  <Zap className="h-4 w-4 md:h-5 md:w-5 text-yellow-500" />
-                  Quick Actions
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-2 md:gap-3">
-                  <Button asChild className="h-auto p-3 md:p-4 flex-col gap-1 md:gap-2 text-xs">
-                    <Link to="/daily-log">
-                      <BookOpen className="h-4 w-4 md:h-5 md:w-5" />
-                      <span>Log Practice</span>
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline" className="h-auto p-3 md:p-4 flex-col gap-1 md:gap-2 text-xs">
-                    <Link to="/contest-log">
-                      <Trophy className="h-4 w-4 md:h-5 md:w-5" />
-                      <span>Log Contest</span>
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline" className="h-auto p-3 md:p-4 flex-col gap-1 md:gap-2 text-xs">
-                    <Link to="/weekly-goals">
-                      <Target className="h-4 w-4 md:h-5 md:w-5" />
-                      <span>Set Goals</span>
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline" className="h-auto p-3 md:p-4 flex-col gap-1 md:gap-2 text-xs">
-                    <Link to="/settings">
-                      <TrendingUp className="h-4 w-4 md:h-5 md:w-5" />
-                      <span>Settings</span>
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            
+            <EnhancedCard
+              title="Quick Actions"
+              icon={Zap}
+              iconColor="bg-indigo-100 text-indigo-600"
+              gradient
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <Button 
+                  asChild 
+                  className="h-auto p-4 flex-col gap-2 transition-all duration-300 hover:scale-105"
+                >
+                  <Link to="/daily-log">
+                    <BookOpen className="h-5 w-5" />
+                    <span className="text-sm font-medium">Log Practice</span>
+                  </Link>
+                </Button>
+                <Button 
+                  asChild 
+                  variant="outline" 
+                  className="h-auto p-4 flex-col gap-2 transition-all duration-300 hover:scale-105"
+                >
+                  <Link to="/contest-log">
+                    <Trophy className="h-5 w-5" />
+                    <span className="text-sm font-medium">Log Contest</span>
+                  </Link>
+                </Button>
+                <Button 
+                  asChild 
+                  variant="outline" 
+                  className="h-auto p-4 flex-col gap-2 transition-all duration-300 hover:scale-105"
+                >
+                  <Link to="/weekly-goals">
+                    <Target className="h-5 w-5" />
+                    <span className="text-sm font-medium">Set Goals</span>
+                  </Link>
+                </Button>
+                <Button 
+                  asChild 
+                  variant="outline" 
+                  className="h-auto p-4 flex-col gap-2 transition-all duration-300 hover:scale-105"
+                >
+                  <Link to="/settings">
+                    <TrendingUp className="h-5 w-5" />
+                    <span className="text-sm font-medium">Settings</span>
+                  </Link>
+                </Button>
+              </div>
+            </EnhancedCard>
           </div>
         </div>
 
         {/* Second Row - Analytics and Progress */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
-          <div className="space-y-4 md:space-y-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <div className="space-y-6">
             <DifficultyChart data={difficultyData} />
             <TopicProgress />
           </div>
           
-          <div className="space-y-4 md:space-y-6">
+          <div className="space-y-6">
             <ProblemRecommendations />
             <Achievements />
           </div>
         </div>
 
-        {/* Third Row - Study Plan and Recent Activity */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
+        {/* Third Row - Study Plan and Stats */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <StudyPlan />
           
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Brain className="h-5 w-5 text-purple-500" />
-                Quick Stats Overview
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <Trophy className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                    <div className="text-2xl font-bold text-blue-600">{summary.totalContests}</div>
-                    <div className="text-sm text-blue-600">Contests</div>
-                  </div>
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <Target className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                    <div className="text-2xl font-bold text-green-600">{summary.totalGoals}</div>
-                    <div className="text-sm text-green-600">Goals Set</div>
-                  </div>
+          <EnhancedCard
+            title="Performance Overview"
+            icon={Brain}
+            iconColor="bg-purple-100 text-purple-600"
+            gradient
+          >
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl border border-blue-200/50">
+                  <Trophy className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                  <AnimatedCounter 
+                    value={summary.totalContests} 
+                    className="text-2xl font-bold text-blue-600"
+                  />
+                  <div className="text-sm text-blue-600 font-medium">Contests</div>
                 </div>
-                
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <Award className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-purple-600">{summary.badgesEarned}</div>
-                  <div className="text-sm text-purple-600">Badges Earned</div>
+                <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100/50 rounded-xl border border-green-200/50">
+                  <Target className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                  <AnimatedCounter 
+                    value={summary.totalGoals} 
+                    className="text-2xl font-bold text-green-600"
+                  />
+                  <div className="text-sm text-green-600 font-medium">Goals Set</div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+              
+              <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-xl border border-purple-200/50">
+                <Award className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                <AnimatedCounter 
+                  value={summary.badgesEarned} 
+                  className="text-2xl font-bold text-purple-600"
+                />
+                <div className="text-sm text-purple-600 font-medium">Badges Earned</div>
+              </div>
+            </div>
+          </EnhancedCard>
         </div>
 
         {/* Activity Heatmap */}
-        <ActivityHeatmap data={heatmapData} className="mb-6 md:mb-8" />
+        <ActivityHeatmap data={heatmapData} />
 
-        {/* Current Goals Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <span>Performance Insights</span>
-              <Button asChild size="sm">
-                <Link to="/weekly-goals">Manage Goals</Link>
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {summary.totalProblems === 0 ? (
-              <div className="text-center py-12">
-                <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Start Your Journey</h3>
-                <p className="text-muted-foreground mb-4">
-                  Begin by logging your first practice session or contest participation
-                </p>
-                <div className="flex gap-2 justify-center">
-                  <Button asChild>
-                    <Link to="/daily-log">Log Practice Session</Link>
-                  </Button>
-                  <Button asChild variant="outline">
-                    <Link to="/contest-log">Log Contest</Link>
-                  </Button>
-                </div>
+        {/* Performance Insights */}
+        <EnhancedCard
+          title="Performance Insights"
+          icon={BarChart3}
+          iconColor="bg-indigo-100 text-indigo-600"
+          gradient
+        >
+          {summary.totalProblems === 0 ? (
+            <div className="text-center py-12">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 mx-auto mb-4">
+                <BookOpen className="h-8 w-8 text-blue-600" />
               </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-4 border rounded-lg">
-                    <h4 className="font-semibold mb-2">This Week's Progress</h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Problems Solved</span>
-                        <span className="font-medium">{summary.problemsThisWeek}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Time Practiced</span>
-                        <span className="font-medium">{summary.hoursThisWeek}h</span>
-                      </div>
+              <h3 className="text-xl font-semibold mb-2">Start Your Journey</h3>
+              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                Begin by logging your first practice session or contest participation to see detailed insights
+              </p>
+              <div className="flex gap-3 justify-center">
+                <Button asChild size="lg">
+                  <Link to="/daily-log">
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    Log Practice Session
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="lg">
+                  <Link to="/contest-log">
+                    <Trophy className="h-4 w-4 mr-2" />
+                    Log Contest
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="p-6 border border-blue-200/50 rounded-xl bg-gradient-to-br from-blue-50/50 to-transparent">
+                  <h4 className="font-semibold mb-4 flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-blue-600" />
+                    This Week's Progress
+                  </h4>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Problems Solved</span>
+                      <span className="font-semibold">{summary.problemsThisWeek}</span>
                     </div>
-                  </div>
-                  
-                  <div className="p-4 border rounded-lg">
-                    <h4 className="font-semibold mb-2">Overall Stats</h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Total Problems</span>
-                        <span className="font-medium">{summary.totalProblems}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Goals Completed</span>
-                        <span className="font-medium">{summary.completedGoals}/{summary.totalGoals}</span>
-                      </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Time Practiced</span>
+                      <span className="font-semibold">{summary.hoursThisWeek}h</span>
                     </div>
                   </div>
                 </div>
+                
+                <div className="p-6 border border-green-200/50 rounded-xl bg-gradient-to-br from-green-50/50 to-transparent">
+                  <h4 className="font-semibold mb-4 flex items-center gap-2">
+                    <Star className="h-4 w-4 text-green-600" />
+                    Overall Stats
+                  </h4>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Total Problems</span>
+                      <span className="font-semibold">{summary.totalProblems}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Goals Completed</span>
+                      <span className="font-semibold">{summary.completedGoals}/{summary.totalGoals}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </main>
-    </div>
+
+              <div className="flex justify-center">
+                <Button asChild>
+                  <Link to="/weekly-goals">
+                    <Target className="h-4 w-4 mr-2" />
+                    Manage Goals
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          )}
+        </EnhancedCard>
+      </div>
+    </AppLayout>
   );
 };
