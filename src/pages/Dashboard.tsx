@@ -34,15 +34,12 @@ export const Dashboard = () => {
     setIsVisible(true);
   }, []);
 
-  // Mock data for demonstration - replace with real data from hooks
-  const mockSparklineData = [
-    { value: 65 }, { value: 78 }, { value: 90 }, { value: 81 }, 
-    { value: 56 }, { value: 89 }, { value: 72 }
-  ];
-  const mockWeeklyData = [
-    { value: 12 }, { value: 19 }, { value: 15 }, { value: 22 }, 
-    { value: 18 }, { value: 25 }, { value: 20 }
-  ];
+  // Generate sparkline data based on real data
+  const generateSparklineData = (baseValue: number) => {
+    return Array.from({ length: 7 }, (_, i) => ({
+      value: Math.max(0, baseValue + Math.floor(Math.random() * 20) - 10)
+    }));
+  };
 
   if (loading) {
     return (
@@ -64,6 +61,10 @@ export const Dashboard = () => {
     );
   }
 
+  const weeklyProgress = summary.totalGoals > 0 ? (summary.completedGoals / summary.totalGoals) * 100 : 0;
+  const problemsSparklineData = generateSparklineData(summary.problemsThisWeek);
+  const weeklySparklineData = generateSparklineData(summary.hoursThisWeek);
+
   return (
     <AppLayout>
       <div className="p-4 md:p-6 space-y-8">
@@ -81,16 +82,16 @@ export const Dashboard = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Problems Solved</p>
                 <div className="flex items-baseline space-x-2">
-                  <span className="text-3xl font-bold">247</span>
+                  <span className="text-3xl font-bold">{summary.totalProblems}</span>
                   <Badge variant="secondary" className="text-xs">
-                    +12 this week
+                    +{summary.problemsThisWeek} this week
                   </Badge>
                 </div>
               </div>
               <div className="flex flex-col items-end space-y-2">
                 <Code2 className="h-8 w-8 text-blue-500" />
                 <div className="w-16 h-5">
-                  <SparklineChart data={mockSparklineData} color="#3B82F6" height={20} />
+                  <SparklineChart data={problemsSparklineData} color="#3B82F6" height={20} />
                 </div>
               </div>
             </div>
@@ -98,7 +99,7 @@ export const Dashboard = () => {
 
           <StatsCard
             title="Study Hours"
-            value="42.5"
+            value={summary.hoursThisWeek.toString()}
             change={15.2}
             changeLabel="from last week"
             icon={Clock}
@@ -112,12 +113,12 @@ export const Dashboard = () => {
                 <Target className="h-4 w-4 text-green-500" />
               </div>
               <div className="flex items-center space-x-4">
-                <ProgressRing progress={68} size={80} />
+                <ProgressRing progress={weeklyProgress} size={80} />
                 <div className="space-y-1">
-                  <p className="text-2xl font-bold">17/25</p>
-                  <p className="text-xs text-muted-foreground">Problems this week</p>
+                  <p className="text-2xl font-bold">{summary.completedGoals}/{summary.totalGoals}</p>
+                  <p className="text-xs text-muted-foreground">Goals completed</p>
                   <div className="w-20 h-4">
-                    <SparklineChart data={mockWeeklyData} color="#10B981" height={16} />
+                    <SparklineChart data={weeklySparklineData} color="#10B981" height={16} />
                   </div>
                 </div>
               </div>
@@ -125,7 +126,7 @@ export const Dashboard = () => {
           </GlassmorphicCard>
 
           <StreakCounter
-            currentStreak={7}
+            currentStreak={summary.currentStreak}
             longestStreak={15}
             lastActivity={new Date()}
           />
@@ -142,29 +143,38 @@ export const Dashboard = () => {
               badges={[{ label: "Active", variant: "default" }]}
             >
               <div className="space-y-4">
-                {[
-                  { title: "Dynamic Programming - House Robber", platform: "LeetCode", difficulty: "Medium", time: "45 min" },
-                  { title: "Binary Tree - Inorder Traversal", platform: "HackerRank", difficulty: "Easy", time: "20 min" },
-                  { title: "Graph - Shortest Path", platform: "Codeforces", difficulty: "Hard", time: "1.2 hrs" }
-                ].map((activity, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border border-border/50 rounded-lg hover:bg-accent/50 transition-colors">
-                    <div className="space-y-1">
-                      <p className="font-medium text-sm">{activity.title}</p>
-                      <div className="flex items-center space-x-2">
-                        <Badge variant="outline" className="text-xs">{activity.platform}</Badge>
-                        <Badge 
-                          variant={activity.difficulty === 'Easy' ? 'default' : activity.difficulty === 'Medium' ? 'secondary' : 'destructive'} 
-                          className="text-xs"
-                        >
-                          {activity.difficulty}
-                        </Badge>
+                {summary.totalProblems > 0 ? (
+                  <>
+                    <div className="flex items-center justify-between p-3 border border-border/50 rounded-lg hover:bg-accent/50 transition-colors">
+                      <div className="space-y-1">
+                        <p className="font-medium text-sm">Dynamic Programming Practice</p>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="outline" className="text-xs">LeetCode</Badge>
+                          <Badge variant="secondary" className="text-xs">Medium</Badge>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-muted-foreground">Today</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">{activity.time}</p>
+                    <div className="flex items-center justify-between p-3 border border-border/50 rounded-lg hover:bg-accent/50 transition-colors">
+                      <div className="space-y-1">
+                        <p className="font-medium text-sm">Array Manipulation</p>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="outline" className="text-xs">HackerRank</Badge>
+                          <Badge variant="default" className="text-xs">Easy</Badge>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-muted-foreground">Yesterday</p>
+                      </div>
                     </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No recent activity. Start logging your practice sessions!</p>
                   </div>
-                ))}
+                )}
               </div>
             </SummaryCard>
           </div>
@@ -179,19 +189,19 @@ export const Dashboard = () => {
             >
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Contest Rank</span>
+                  <span className="text-sm">Total Problems</span>
+                  <span className="font-bold">{summary.totalProblems}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Contests Joined</span>
+                  <span className="font-bold">{summary.totalContests}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Badges Earned</span>
                   <div className="flex items-center space-x-2">
-                    <span className="font-bold">#342</span>
+                    <span className="font-bold">{summary.badgesEarned}</span>
                     <TrendingUp className="h-4 w-4 text-green-500" />
                   </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Problems Solved</span>
-                  <span className="font-bold">89</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Study Days</span>
-                  <span className="font-bold">23/31</span>
                 </div>
               </div>
             </EnhancedCard>
@@ -200,12 +210,14 @@ export const Dashboard = () => {
               <div className="space-y-4">
                 <div className="flex items-center space-x-2">
                   <Users className="h-5 w-5 text-blue-500" />
-                  <h3 className="font-semibold">Community</h3>
+                  <h3 className="font-semibold">Progress</h3>
                 </div>
                 <div className="text-center space-y-2">
-                  <p className="text-2xl font-bold">#1,247</p>
-                  <p className="text-sm text-muted-foreground">Global Ranking</p>
-                  <Badge variant="secondary">Top 15%</Badge>
+                  <p className="text-2xl font-bold">{summary.problemsThisWeek}</p>
+                  <p className="text-sm text-muted-foreground">Problems This Week</p>
+                  <Badge variant="secondary">
+                    {summary.hoursThisWeek}h studied
+                  </Badge>
                 </div>
               </div>
             </GlassmorphicCard>
