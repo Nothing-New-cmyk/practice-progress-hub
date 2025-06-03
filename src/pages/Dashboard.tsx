@@ -1,7 +1,7 @@
-
 import { AppLayout } from '@/components/layouts/AppLayout';
 import { SectionHeader } from '@/components/ui/section-header';
 import { EnhancedCard } from '@/components/ui/enhanced-card';
+import { GlassmorphicCard } from '@/components/ui/glassmorphic-card';
 import { AnimatedCounter } from '@/components/ui/animated-counter';
 import { EnhancedProgress } from '@/components/ui/enhanced-progress';
 import { EnhancedBadge } from '@/components/ui/enhanced-badge';
@@ -14,7 +14,8 @@ import { TopicProgress } from '@/components/features/TopicProgress';
 import { StudyTimer } from '@/components/features/StudyTimer';
 import { Achievements } from '@/components/features/Achievements';
 import { QuickLogger } from '@/components/features/QuickLogger';
-import { Button } from '@/components/ui/button';
+import { AnimatedGradientButton } from '@/components/ui/animated-gradient-button';
+import { LoadingSkeleton } from '@/components/ui/loading-skeleton';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { 
   Target, 
@@ -28,13 +29,20 @@ import {
   Trophy,
   BarChart3,
   CheckCircle,
-  AlertCircle,
   Star
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 export const Dashboard = () => {
   const { summary, loading } = useDashboardData();
+
+  // Mock sparkline data
+  const generateSparklineData = (points: number) => {
+    return Array.from({ length: points }, (_, i) => ({
+      value: Math.floor(Math.random() * 10) + 1
+    }));
+  };
 
   const difficultyData = [
     { difficulty: 'Easy', count: Math.floor(summary.totalProblems * 0.5), color: '#10B981' },
@@ -51,10 +59,15 @@ export const Dashboard = () => {
   if (loading) {
     return (
       <AppLayout showFAB={false}>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center space-y-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p className="text-muted-foreground">Loading your dashboard...</p>
+        <div className="p-4 md:p-6 space-y-8">
+          <LoadingSkeleton className="h-8 w-64" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+            {[...Array(4)].map((_, i) => (
+              <GlassmorphicCard key={i} className="p-6">
+                <LoadingSkeleton className="h-6 w-32 mb-4" />
+                <LoadingSkeleton className="h-8 w-16" />
+              </GlassmorphicCard>
+            ))}
           </div>
         </div>
       </AppLayout>
@@ -66,124 +79,155 @@ export const Dashboard = () => {
   return (
     <AppLayout>
       <div className="p-4 md:p-6 space-y-8">
-        {/* Header */}
-        <SectionHeader
-          title="Dashboard"
-          subtitle="Track your DSA progress and achievements"
-          icon={BarChart3}
-        />
+        {/* Header with parallax effect */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <SectionHeader
+            title="Dashboard"
+            subtitle="Track your DSA progress and achievements"
+            icon={BarChart3}
+          />
+        </motion.div>
 
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          <EnhancedCard
-            title="Problems This Week"
-            icon={Target}
-            iconColor="bg-blue-100 text-blue-600"
-            gradient
-            hover
+        {/* Key Metrics - Asymmetrical Grid */}
+        <div className="asymmetric-grid">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
           >
-            <div className="space-y-3">
-              <div className="flex items-baseline gap-2">
+            <GlassmorphicCard variant="strong" className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-500/20 rounded-lg">
+                    <Target className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-blue-600">Problems This Week</h3>
+                    <p className="text-sm text-muted-foreground">Weekly target: 20</p>
+                  </div>
+                </div>
+                <div className="w-16 h-8">
+                  {/* Sparkline placeholder */}
+                  <div className="h-full bg-gradient-to-r from-blue-500/20 to-blue-600/30 rounded"></div>
+                </div>
+              </div>
+              <div className="space-y-3">
                 <AnimatedCounter 
                   value={summary.problemsThisWeek} 
                   className="text-3xl font-bold text-blue-600"
                 />
-                <span className="text-sm text-muted-foreground">problems</span>
-              </div>
-              <EnhancedProgress
-                value={summary.problemsThisWeek}
-                max={20}
-                variant="default"
-                size="sm"
-                animated
-              />
-              <div className="flex items-center gap-2">
+                <EnhancedProgress
+                  value={summary.problemsThisWeek}
+                  max={20}
+                  variant="default"
+                  size="sm"
+                  animated
+                />
                 <EnhancedBadge variant="success" size="sm" icon={TrendingUp}>
-                  +12%
+                  +12% vs last week
                 </EnhancedBadge>
-                <span className="text-xs text-muted-foreground">vs last week</span>
               </div>
-            </div>
-          </EnhancedCard>
+            </GlassmorphicCard>
+          </motion.div>
 
-          <EnhancedCard
-            title="Time This Week"
-            icon={Clock}
-            iconColor="bg-green-100 text-green-600"
-            gradient
-            hover
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <div className="space-y-3">
-              <div className="flex items-baseline gap-2">
+            <GlassmorphicCard variant="strong" className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-green-500/20 rounded-lg">
+                    <Clock className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-green-600">Time This Week</h3>
+                    <p className="text-sm text-muted-foreground">Focused practice</p>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-3">
                 <AnimatedCounter 
                   value={summary.hoursThisWeek} 
+                  suffix="h" 
                   className="text-3xl font-bold text-green-600"
                 />
-                <span className="text-sm text-muted-foreground">hours</span>
-              </div>
-              <div className="flex items-center gap-2">
                 <EnhancedBadge variant="success" size="sm" icon={TrendingUp}>
-                  +8%
+                  +8% efficiency
                 </EnhancedBadge>
-                <span className="text-xs text-muted-foreground">focused practice</span>
               </div>
-            </div>
-          </EnhancedCard>
+            </GlassmorphicCard>
+          </motion.div>
 
-          <EnhancedCard
-            title="Weekly Goals"
-            icon={CheckCircle}
-            iconColor="bg-yellow-100 text-yellow-600"
-            gradient
-            hover
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
           >
-            <div className="space-y-3">
-              <div className="flex items-baseline gap-2">
+            <GlassmorphicCard variant="strong" className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-yellow-500/20 rounded-lg">
+                    <CheckCircle className="h-6 w-6 text-yellow-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-yellow-600">Weekly Goals</h3>
+                    <p className="text-sm text-muted-foreground">{summary.completedGoals}/{summary.totalGoals} completed</p>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-3">
                 <AnimatedCounter 
                   value={weeklyGoalProgress} 
                   suffix="%" 
                   className="text-3xl font-bold text-yellow-600"
                 />
-                <span className="text-sm text-muted-foreground">complete</span>
+                <EnhancedProgress
+                  value={weeklyGoalProgress}
+                  variant="warning"
+                  size="sm"
+                  animated
+                />
               </div>
-              <EnhancedProgress
-                value={weeklyGoalProgress}
-                variant="warning"
-                size="sm"
-                animated
-              />
-              <span className="text-xs text-muted-foreground">
-                {summary.completedGoals}/{summary.totalGoals} goals achieved
-              </span>
-            </div>
-          </EnhancedCard>
+            </GlassmorphicCard>
+          </motion.div>
 
-          <EnhancedCard
-            title="Total Solved"
-            icon={Award}
-            iconColor="bg-purple-100 text-purple-600"
-            gradient
-            hover
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
           >
-            <div className="space-y-3">
-              <div className="flex items-baseline gap-2">
+            <GlassmorphicCard variant="strong" className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-500/20 rounded-lg">
+                    <Award className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-purple-600">Total Solved</h3>
+                    <p className="text-sm text-muted-foreground">All time record</p>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-3">
                 <AnimatedCounter 
                   value={summary.totalProblems} 
                   className="text-3xl font-bold text-purple-600"
                 />
-                <span className="text-sm text-muted-foreground">problems</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <EnhancedBadge variant="success" size="sm" icon={TrendingUp}>
-                  +5
+                <EnhancedBadge variant="success" size="sm" icon={Star}>
+                  Personal best!
                 </EnhancedBadge>
-                <span className="text-xs text-muted-foreground">all time</span>
               </div>
-            </div>
-          </EnhancedCard>
+            </GlassmorphicCard>
+          </motion.div>
         </div>
 
-        {/* First Row - Essential Features */}
+        {/* Rest of the dashboard content with existing functionality */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <div className="xl:col-span-2 space-y-6">
             <StreakCounter 
@@ -385,6 +429,83 @@ export const Dashboard = () => {
             </div>
           )}
         </EnhancedCard>
+
+        {/* Quick Actions with Animated Gradient Buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
+        >
+          <GlassmorphicCard className="p-6">
+            <h3 className="text-lg font-semibold mb-4 heading-gradient">Quick Actions</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <AnimatedGradientButton asChild gradient="primary" className="ripple">
+                <Link to="/daily-log" className="flex flex-col items-center gap-2 p-4">
+                  <BookOpen className="h-6 w-6" />
+                  <span className="text-sm font-medium">Log Practice</span>
+                </Link>
+              </AnimatedGradientButton>
+              
+              <AnimatedGradientButton asChild gradient="secondary" className="ripple">
+                <Link to="/contest-log" className="flex flex-col items-center gap-2 p-4">
+                  <Trophy className="h-6 w-6" />
+                  <span className="text-sm font-medium">Log Contest</span>
+                </Link>
+              </AnimatedGradientButton>
+              
+              <AnimatedGradientButton asChild gradient="success" className="ripple">
+                <Link to="/weekly-goals" className="flex flex-col items-center gap-2 p-4">
+                  <Target className="h-6 w-6" />
+                  <span className="text-sm font-medium">Set Goals</span>
+                </Link>
+              </AnimatedGradientButton>
+              
+              <AnimatedGradientButton asChild gradient="rainbow" className="ripple">
+                <Link to="/settings" className="flex flex-col items-center gap-2 p-4">
+                  <TrendingUp className="h-6 w-6" />
+                  <span className="text-sm font-medium">Analytics</span>
+                </Link>
+              </AnimatedGradientButton>
+            </div>
+          </GlassmorphicCard>
+        </motion.div>
+
+        {/* Empty state with friendly microcopy */}
+        {summary.totalProblems === 0 && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.7 }}
+          >
+            <GlassmorphicCard className="text-center py-16">
+              <motion.div
+                animate={{ y: [0, -10, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-600 mx-auto mb-6"
+              >
+                <BookOpen className="h-10 w-10 text-white" />
+              </motion.div>
+              <h3 className="text-2xl font-bold heading-gradient mb-3">Ready to start your coding journey?</h3>
+              <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+                No practice sessions yet—let's get started! Track your progress, set goals, and watch yourself grow.
+              </p>
+              <div className="flex gap-4 justify-center">
+                <AnimatedGradientButton asChild gradient="primary" size="lg">
+                  <Link to="/daily-log">
+                    <BookOpen className="h-5 w-5 mr-2" />
+                    Start First Session
+                  </Link>
+                </AnimatedGradientButton>
+                <AnimatedGradientButton asChild gradient="secondary" size="lg">
+                  <Link to="/weekly-goals">
+                    <Target className="h-5 w-5 mr-2" />
+                    Set Weekly Goals
+                  </Link>
+                </AnimatedGradientButton>
+              </div>
+            </GlassmorphicCard>
+          </motion.div>
+        )}
       </div>
     </AppLayout>
   );
