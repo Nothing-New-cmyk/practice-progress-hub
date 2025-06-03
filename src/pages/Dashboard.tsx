@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 
 export const Dashboard = () => {
-  const { data, isLoading } = useDashboardData();
+  const { summary, loading } = useDashboardData();
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -35,22 +35,28 @@ export const Dashboard = () => {
   }, []);
 
   // Mock data for demonstration - replace with real data from hooks
-  const mockSparklineData = [65, 78, 90, 81, 56, 89, 72];
-  const mockWeeklyData = [12, 19, 15, 22, 18, 25, 20];
+  const mockSparklineData = [
+    { value: 65 }, { value: 78 }, { value: 90 }, { value: 81 }, 
+    { value: 56 }, { value: 89 }, { value: 72 }
+  ];
+  const mockWeeklyData = [
+    { value: 12 }, { value: 19 }, { value: 15 }, { value: 22 }, 
+    { value: 18 }, { value: 25 }, { value: 20 }
+  ];
 
-  if (isLoading) {
+  if (loading) {
     return (
       <AppLayout>
         <div className="p-4 md:p-6 space-y-8">
-          <LoadingSkeleton type="header" />
+          <LoadingSkeleton className="h-20 w-full" />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {Array.from({ length: 4 }).map((_, i) => (
-              <LoadingSkeleton key={i} type="card" />
+              <LoadingSkeleton key={i} className="h-32 w-full" />
             ))}
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {Array.from({ length: 4 }).map((_, i) => (
-              <LoadingSkeleton key={i} type="chart" />
+              <LoadingSkeleton key={i} className="h-64 w-full" />
             ))}
           </div>
         </div>
@@ -83,7 +89,9 @@ export const Dashboard = () => {
               </div>
               <div className="flex flex-col items-end space-y-2">
                 <Code2 className="h-8 w-8 text-blue-500" />
-                <SparklineChart data={mockSparklineData} width={60} height={20} />
+                <div className="w-16 h-5">
+                  <SparklineChart data={mockSparklineData} color="#3B82F6" height={20} />
+                </div>
               </div>
             </div>
           </GlassmorphicCard>
@@ -108,7 +116,9 @@ export const Dashboard = () => {
                 <div className="space-y-1">
                   <p className="text-2xl font-bold">17/25</p>
                   <p className="text-xs text-muted-foreground">Problems this week</p>
-                  <SparklineChart data={mockWeeklyData} width={80} height={16} />
+                  <div className="w-20 h-4">
+                    <SparklineChart data={mockWeeklyData} color="#10B981" height={16} />
+                  </div>
                 </div>
               </div>
             </div>
