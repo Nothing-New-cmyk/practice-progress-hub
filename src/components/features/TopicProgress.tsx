@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabaseClient } from '@/lib/supabase-utils';
@@ -64,12 +63,16 @@ export const TopicProgress = () => {
           const weightedScore = (stats.difficulties.Easy * 1 + stats.difficulties.Medium * 2 + stats.difficulties.Hard * 3);
           const accuracy = totalDifficulty > 0 ? Math.round((weightedScore / (totalDifficulty * 3)) * 100) : 0;
           
+          // Generate trend with proper typing
+          const randomValue = Math.random();
+          const trend: 'up' | 'down' | 'neutral' = randomValue > 0.6 ? 'up' : randomValue > 0.3 ? 'down' : 'neutral';
+          
           return {
             topic,
             solved: stats.solved,
             total: Math.max(stats.solved * 1.5, 20), // Estimate total based on solved
             accuracy,
-            trend: Math.random() > 0.5 ? 'up' : 'down', // Random for now, can be calculated based on recent performance
+            trend,
             trendValue: Math.floor(Math.random() * 25),
             avgTime: Math.round(stats.totalTime / stats.sessions)
           };
