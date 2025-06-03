@@ -6,15 +6,17 @@ interface SparklineChartProps {
   data: Array<{ value: number }>
   color?: string
   height?: number
+  width?: number
 }
 
 export const SparklineChart: React.FC<SparklineChartProps> = ({
   data,
   color = '#3B82F6',
-  height = 40
+  height = 40,
+  width
 }) => {
   return (
-    <ResponsiveContainer width="100%" height={height}>
+    <ResponsiveContainer width={width || "100%"} height={height}>
       <LineChart data={data}>
         <Line
           type="monotone"

@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 
 export const Dashboard = () => {
-  const { data, isLoading } = useDashboardData();
+  const { summary, loading } = useDashboardData();
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -35,22 +35,22 @@ export const Dashboard = () => {
   }, []);
 
   // Mock data for demonstration - replace with real data from hooks
-  const mockSparklineData = [65, 78, 90, 81, 56, 89, 72];
-  const mockWeeklyData = [12, 19, 15, 22, 18, 25, 20];
+  const mockSparklineData = [65, 78, 90, 81, 56, 89, 72].map(value => ({ value }));
+  const mockWeeklyData = [12, 19, 15, 22, 18, 25, 20].map(value => ({ value }));
 
-  if (isLoading) {
+  if (loading) {
     return (
       <AppLayout>
         <div className="p-4 md:p-6 space-y-8">
-          <LoadingSkeleton type="header" />
+          <LoadingSkeleton className="h-16 w-full" />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {Array.from({ length: 4 }).map((_, i) => (
-              <LoadingSkeleton key={i} type="card" />
+              <LoadingSkeleton key={i} className="h-32 w-full" />
             ))}
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {Array.from({ length: 4 }).map((_, i) => (
-              <LoadingSkeleton key={i} type="chart" />
+              <LoadingSkeleton key={i} className="h-64 w-full" />
             ))}
           </div>
         </div>
@@ -75,9 +75,9 @@ export const Dashboard = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Problems Solved</p>
                 <div className="flex items-baseline space-x-2">
-                  <span className="text-3xl font-bold">247</span>
+                  <span className="text-3xl font-bold">{summary.totalProblems}</span>
                   <Badge variant="secondary" className="text-xs">
-                    +12 this week
+                    +{summary.problemsThisWeek} this week
                   </Badge>
                 </div>
               </div>
@@ -90,7 +90,7 @@ export const Dashboard = () => {
 
           <StatsCard
             title="Study Hours"
-            value="42.5"
+            value={summary.hoursThisWeek}
             change={15.2}
             changeLabel="from last week"
             icon={Clock}
@@ -106,7 +106,7 @@ export const Dashboard = () => {
               <div className="flex items-center space-x-4">
                 <ProgressRing progress={68} size={80} />
                 <div className="space-y-1">
-                  <p className="text-2xl font-bold">17/25</p>
+                  <p className="text-2xl font-bold">{summary.problemsThisWeek}/25</p>
                   <p className="text-xs text-muted-foreground">Problems this week</p>
                   <SparklineChart data={mockWeeklyData} width={80} height={16} />
                 </div>
@@ -115,7 +115,7 @@ export const Dashboard = () => {
           </GlassmorphicCard>
 
           <StreakCounter
-            currentStreak={7}
+            currentStreak={summary.currentStreak}
             longestStreak={15}
             lastActivity={new Date()}
           />
@@ -177,7 +177,7 @@ export const Dashboard = () => {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Problems Solved</span>
-                  <span className="font-bold">89</span>
+                  <span className="font-bold">{summary.totalProblems}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Study Days</span>
