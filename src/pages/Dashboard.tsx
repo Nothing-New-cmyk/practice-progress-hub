@@ -1,3 +1,4 @@
+
 import { AppLayout } from '@/components/layouts/AppLayout';
 import { SectionHeader } from '@/components/ui/section-header';
 import { EnhancedCard } from '@/components/ui/enhanced-card';
@@ -16,6 +17,7 @@ import { Achievements } from '@/components/features/Achievements';
 import { QuickLogger } from '@/components/features/QuickLogger';
 import { AnimatedGradientButton } from '@/components/ui/animated-gradient-button';
 import { LoadingSkeleton } from '@/components/ui/loading-skeleton';
+import { Button } from '@/components/ui/button';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { 
   Target, 
