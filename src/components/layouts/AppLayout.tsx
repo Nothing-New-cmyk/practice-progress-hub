@@ -41,7 +41,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   ]
 
   useEffect(() => {
-    // Check if user has seen onboarding
     const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding')
     if (!hasSeenOnboarding) {
       setShowOnboarding(true)
@@ -110,6 +109,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         }}
       />
 
+      {/* Navbar */}
       <Navbar />
       
       {/* Theme toggle in top right */}
@@ -117,7 +117,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         <ThemeToggle />
       </div>
 
-      <main className={cn("md:ml-64 transition-all duration-300 relative z-10", className)}>
+      {/* Main content without sidebar margin */}
+      <main className={cn("transition-all duration-300 relative z-10", className)}>
         <PageTransition key={window.location.pathname}>
           {children}
         </PageTransition>
