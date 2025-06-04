@@ -10,29 +10,10 @@ interface UserPreferences {
 export class UserPreferencesService {
   private static readonly STORAGE_KEY = 'user_preferences';
 
-  // Get preferences from localStorage (fallback) or database
+  // Get preferences from localStorage
   static async getPreferences(): Promise<UserPreferences> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        // Try to get from database first
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-
-        if (data) {
-          return {
-            hasSeenOnboarding: data.has_seen_onboarding || false,
-            theme: data.theme_preference || 'system',
-            notificationsEnabled: data.notifications_enabled || true,
-          };
-        }
-      }
-
-      // Fallback to localStorage
+      // Use localStorage as primary storage
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (stored) {
         return JSON.parse(stored);
@@ -54,33 +35,16 @@ export class UserPreferencesService {
     }
   }
 
-  // Save preferences to both localStorage and database
+  // Save preferences to localStorage
   static async setPreferences(preferences: Partial<UserPreferences>): Promise<void> {
     try {
       const current = await this.getPreferences();
       const updated = { ...current, ...preferences };
 
-      // Save to localStorage immediately
+      // Save to localStorage
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(updated));
-
-      // Try to save to database if user is authenticated
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase
-          .from('profiles')
-          .upsert({
-            id: user.id,
-            has_seen_onboarding: updated.hasSeenOnboarding,
-            theme_preference: updated.theme,
-            notifications_enabled: updated.notificationsEnabled,
-          });
-      }
     } catch (error) {
       console.error('Error saving user preferences:', error);
-      // Still save to localStorage as fallback
-      const current = await this.getPreferences();
-      const updated = { ...current, ...preferences };
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(updated));
     }
   }
 
