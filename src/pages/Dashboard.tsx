@@ -76,7 +76,7 @@ export const Dashboard = () => {
         />
 
         {/* Stats Grid - Asymmetrical Layout */}
-        <div className={`asymmetric-grid transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 transition-all duration-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
           <GlassmorphicCard className="p-6">
             <div className="flex items-center justify-between">
               <div>
