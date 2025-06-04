@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useDashboardData } from '@/hooks/useDashboardData';
 import { AppLayout } from '@/components/layouts/AppLayout';
 import { SectionHeader } from '@/components/ui/section-header';
 import { StatsCard } from '@/components/ui/stats-card';
 import { StreakCounter } from '@/components/ui/streak-counter';
-import { SummaryCard } from '@/components/ui/summary-card';
-import { ProgressRing } from '@/components/ui/progress-ring';
-import { EnhancedCard } from '@/components/ui/enhanced-card';
 import { GlassmorphicCard } from '@/components/ui/glassmorphic-card';
+import { SummaryCard } from '@/components/ui/summary-card';
+import { EnhancedCard } from '@/components/ui/enhanced-card';
 import { SparklineChart } from '@/components/ui/sparkline-chart';
 import { LoadingSkeleton } from '@/components/ui/loading-skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -15,90 +15,40 @@ import { ActivityHeatmap } from '@/components/charts/ActivityHeatmap';
 import { DifficultyChart } from '@/components/charts/DifficultyChart';
 import { TopicProgress } from '@/components/features/TopicProgress';
 import { Achievements } from '@/components/features/Achievements';
-import { useDashboardData } from '@/hooks/useDashboardData';
-import { motion } from 'framer-motion';
-import { 
-  Trophy, 
-  Target, 
-  Clock, 
-  BookOpen, 
-  TrendingUp,
-  Calendar,
+
+import { motion, useReducedMotion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+
+import {
   Code2,
-  Award,
-  Users,
-  Zap,
-  Bell,
-  Play,
-  RotateCcw,
-  Settings,
+  Clock,
+  Trophy,
   ChevronRight,
+  CheckCircle,
+  XCircle,
+  Settings,
+  Bell,
   Star,
-  Flame,
   Brain,
   Timer,
-  BarChart3,
-  PieChart,
+  Play,
+  RotateCcw,
   Activity,
+  Calendar,
   FileText,
-  AlertCircle,
-  CheckCircle,
-  XCircle
+  Zap
 } from 'lucide-react';
 
-export const Dashboard = () => {
-  const { summary, loading } = useDashboardData();
-  const [isVisible, setIsVisible] = useState(false);
+export const Dashboard: React.FC = () => {
+  const { summary, loading, error, refetch } = useDashboardData();
+  const navigate = useNavigate();
+  const shouldReduceMotion = useReducedMotion();
 
-  useEffect(() => {
-    setIsVisible(true);
-  }, []);
-
-  // Generate sample data for charts and heatmap
-  const generateSparklineData = (baseValue: number) => {
-    return Array.from({ length: 7 }, (_, i) => ({
-      value: Math.max(0, baseValue + Math.floor(Math.random() * 20) - 10)
-    }));
-  };
-
-  const generateHeatmapData = () => {
-    const data = [];
-    const today = new Date();
-    for (let i = 0; i < 365; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const level = Math.floor(Math.random() * 5);
-      data.push({
-        date: date.toISOString().split('T')[0],
-        count: level * 2,
-        level: level as 0 | 1 | 2 | 3 | 4
-      });
-    }
-    return data;
-  };
-
-  const difficultyData = [
-    { difficulty: 'Easy', count: 45, color: '#10B981' },
-    { difficulty: 'Medium', count: 32, color: '#F59E0B' },
-    { difficulty: 'Hard', count: 18, color: '#EF4444' }
-  ];
-
-  const weeklyGoals = [
-    { id: 1, goal: 'Solve 20 Medium Problems', target: 20, current: 14, status: 'in_progress' },
-    { id: 2, goal: 'Complete 5 Contest Problems', target: 5, current: 5, status: 'completed' },
-    { id: 3, goal: 'Study Dynamic Programming', target: 1, current: 0, status: 'missed' }
-  ];
-
-  const reminders = [
-    { id: 1, type: 'Daily Practice', time: '9:00 PM', status: 'pending', priority: 'high' },
-    { id: 2, type: 'Weekly Review', time: 'Sunday 8:00 AM', status: 'overdue', priority: 'medium' },
-    { id: 3, type: 'Contest Reminder', time: 'Tomorrow 6:00 PM', status: 'upcoming', priority: 'low' }
-  ];
-
+  // Redirect or show loading/error states
   if (loading) {
     return (
       <AppLayout>
-        <div className="p-4 md:p-6 space-y-8">
+        <div className="p-4 md:p-6 space-y-8 max-w-7xl mx-auto">
           <LoadingSkeleton className="h-20 w-full" />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -115,48 +65,102 @@ export const Dashboard = () => {
     );
   }
 
-  const weeklyProgress = summary.totalGoals > 0 ? (summary.completedGoals / summary.totalGoals) * 100 : 0;
-  const problemsSparklineData = generateSparklineData(summary.problemsThisWeek);
-  const weeklySparklineData = generateSparklineData(summary.hoursThisWeek);
-  const heatmapData = generateHeatmapData();
+  if (error || !summary) {
+    return (
+      <AppLayout>
+        <div className="p-4 md:p-6 max-w-7xl mx-auto text-center">
+          <p className="text-red-600 mb-4">Failed to load dashboard data.</p>
+          <Button
+            onClick={refetch}
+            className="px-4 py-2 bg-blue-600 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+            aria-label="Retry loading dashboard"
+          >
+            Retry
+          </Button>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // Memoize generated chart data
+  const problemsSparklineData = useMemo(
+    () =>
+      Array.from({ length: 7 }, () => ({
+        value: Math.max(0, summary.problemsThisWeek + Math.floor(Math.random() * 20) - 10),
+      })),
+    [summary.problemsThisWeek]
+  );
+
+  const hoursSparklineData = useMemo(
+    () =>
+      Array.from({ length: 7 }, () => ({
+        value: Math.max(0, summary.hoursThisWeek + Math.floor(Math.random() * 10) - 5),
+      })),
+    [summary.hoursThisWeek]
+  );
+
+  const heatmapData = useMemo(() => {
+    // Ideally, fetch actual heatmap data from the backend; this is a placeholder
+    const today = new Date();
+    return Array.from({ length: 365 }, (_, idx) => {
+      const d = new Date(today);
+      d.setDate(d.getDate() - idx);
+      const level = (Math.floor(Math.random() * 5) as 0 | 1 | 2 | 3 | 4);
+      return {
+        date: d.toISOString().split('T')[0],
+        count: level * 2,
+        level,
+      };
+    });
+  }, []);
 
   return (
     <AppLayout>
-      <div className="p-4 md:p-6 space-y-8 max-w-7xl mx-auto">
+      <div className="p-4 md:p-6 space-y-8 max-w-7xl mx-auto bg-white dark:bg-gray-900">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={shouldReduceMotion ? {} : { opacity: 0, y: -20 }}
+          animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
           <SectionHeader
             title="Dashboard"
             subtitle="Track your progress and achieve your coding goals"
             icon={Trophy}
+            className="text-gray-900 dark:text-gray-100"
           />
         </motion.div>
 
-        {/* 1️⃣ Top Section - Summary Cards */}
+        {/* Top Section: Summary Cards */}
         <motion.div
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={shouldReduceMotion ? {} : { opacity: 0, y: 20 }}
+          animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
         >
           {/* Problems This Week */}
-          <GlassmorphicCard className="p-6 hover:shadow-xl transition-all duration-300 group">
+          <GlassmorphicCard
+            as="button"
+            onClick={() => navigate('/problems')}
+            role="button"
+            tabIndex={0}
+            className="p-6 hover:shadow-xl transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label="View problems this week details"
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Problems This Week</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Problems This Week</p>
                 <div className="flex items-baseline space-x-2">
-                  <span className="text-3xl font-bold">{summary.problemsThisWeek}</span>
+                  <span className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                    {summary.problemsThisWeek}
+                  </span>
                   <Badge variant="secondary" className="text-xs">
                     +{Math.round(Math.random() * 20)}% vs last week
                   </Badge>
                 </div>
               </div>
               <div className="flex flex-col items-end space-y-2">
-                <Code2 className="h-8 w-8 text-blue-500 group-hover:scale-110 transition-transform" />
+                <Code2 className="h-8 w-8 text-blue-500 dark:text-blue-400 group-hover:scale-110 transition-transform" />
                 <div className="w-16 h-5">
                   <SparklineChart data={problemsSparklineData} color="#3B82F6" height={20} />
                 </div>
@@ -165,66 +169,125 @@ export const Dashboard = () => {
           </GlassmorphicCard>
 
           {/* Hours This Week */}
-          <StatsCard
-            title="Hours This Week"
-            value={summary.hoursThisWeek.toString()}
-            change={15.2}
-            changeLabel="from last week"
-            icon={Clock}
-            trend="up"
-          />
+          <GlassmorphicCard className="p-6 hover:shadow-xl transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Hours This Week</p>
+                <div className="flex items-baseline space-x-2">
+                  <span className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                    {summary.hoursThisWeek}
+                  </span>
+                  <Badge variant="secondary" className="text-xs">
+                    +{Math.round(Math.random() * 15)}% vs last week
+                  </Badge>
+                </div>
+              </div>
+              <div className="flex flex-col items-end space-y-2">
+                <Clock className="h-8 w-8 text-green-500 dark:text-green-400 group-hover:scale-110 transition-transform" />
+                <div className="w-16 h-5">
+                  <SparklineChart data={hoursSparklineData} color="#10B981" height={20} />
+                </div>
+              </div>
+            </div>
+          </GlassmorphicCard>
 
           {/* Current Streak */}
-          <StreakCounter
-            currentStreak={summary.currentStreak}
-            longestStreak={15}
-            lastActivity={new Date()}
-          />
+          <motion.div
+            initial={shouldReduceMotion ? {} : { opacity: 0, y: 20 }}
+            animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            <StreakCounter
+              currentStreak={summary.currentStreak}
+              longestStreak={summary.longestStreak}
+              lastActivity={new Date(summary.lastActivityDate)}
+              className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </motion.div>
 
           {/* Badges Earned */}
-          <GlassmorphicCard className="p-6 hover:shadow-xl transition-all duration-300 group cursor-pointer">
+          <GlassmorphicCard
+            as="button"
+            onClick={() => navigate('/badges')}
+            role="button"
+            tabIndex={0}
+            className="p-6 hover:shadow-xl transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label="View all earned badges"
+          >
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium text-muted-foreground">Badges Earned</h3>
-                <Award className="h-4 w-4 text-yellow-500" />
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Badges Earned</h3>
+                <Trophy className="h-4 w-4 text-yellow-500 dark:text-yellow-400" />
               </div>
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
-                  <Trophy className="h-8 w-8 text-yellow-500" />
+                  <Trophy className="h-8 w-8 text-yellow-500 dark:text-yellow-400" />
                   <div>
-                    <p className="text-2xl font-bold">{summary.badgesEarned}</p>
-                    <p className="text-xs text-muted-foreground">Latest: Problem Solver</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                      {summary.badgesEarned}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Latest: {summary.latestBadgeName}
+                    </p>
                   </div>
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                <ChevronRight className="h-4 w-4 text-gray-500 dark:text-gray-400 group-hover:translate-x-1 transition-transform" />
               </div>
             </div>
           </GlassmorphicCard>
         </motion.div>
 
-        {/* 2️⃣ Middle Section - Analytics */}
+        {/* Middle Section: Analytics */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left: Heatmap Calendar */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
+          {/* Heatmap Calendar */}
+          <motion.section
+            initial={shouldReduceMotion ? {} : { opacity: 0, x: -20 }}
+            animate={shouldReduceMotion ? {} : { opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
+            className="bg-white dark:bg-gray-800 rounded-lg p-4"
+            role="region"
+            aria-labelledby="heatmap-heading"
           >
-            <ActivityHeatmap data={heatmapData} />
-          </motion.div>
+            <h2 id="heatmap-heading" className="sr-only">
+              Activity Heatmap
+            </h2>
+            <ActivityHeatmap
+              data={heatmapData}
+              aria-label="Calendar heatmap of problems solved per day over last 365 days"
+            />
+          </motion.section>
 
-          {/* Right: Charts Stack */}
+          {/* Charts Stack */}
           <motion.div
             className="space-y-6"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={shouldReduceMotion ? {} : { opacity: 0, x: 20 }}
+            animate={shouldReduceMotion ? {} : { opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
           >
-            {/* Difficulty Mastery Chart */}
-            <DifficultyChart data={difficultyData} />
+            <section
+              role="region"
+              aria-labelledby="difficulty-chart-heading"
+              className="bg-white dark:bg-gray-800 rounded-lg p-4"
+            >
+              <h2 id="difficulty-chart-heading" className="sr-only">
+                Difficulty Mastery Chart
+              </h2>
+              <DifficultyChart
+                data={summary.difficultyData}
+                aria-label="Bar chart showing count of Easy, Medium, Hard problems solved"
+              />
+            </section>
 
-            {/* Topic Progress */}
-            <TopicProgress />
+            <section
+              role="region"
+              aria-labelledby="topic-progress-heading"
+              className="bg-white dark:bg-gray-800 rounded-lg p-4"
+            >
+              <h2 id="topic-progress-heading" className="sr-only">
+                Topic Progress
+              </h2>
+              <TopicProgress data={summary.topicProgress} />
+            </section>
           </motion.div>
         </div>
 
@@ -235,20 +298,26 @@ export const Dashboard = () => {
             title="Personal Bests"
             subtitle="Your record achievements"
             icon={Star}
-            className="p-6"
+            className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm"
           >
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm">Best Week Ever</span>
-                <span className="font-bold text-green-600">47 problems</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">Best Week Ever</span>
+                <span className="font-bold text-green-600 dark:text-green-400">
+                  {summary.bestWeek} problems
+                </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm">Longest Streak</span>
-                <span className="font-bold text-orange-600">15 days</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">Longest Streak</span>
+                <span className="font-bold text-orange-600 dark:text-orange-400">
+                  {summary.longestStreak} days
+                </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm">Fastest Solve</span>
-                <span className="font-bold text-blue-600">12 minutes</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">Fastest Solve</span>
+                <span className="font-bold text-blue-600 dark:text-blue-400">
+                  {summary.fastestSolve} minutes
+                </span>
               </div>
             </div>
           </EnhancedCard>
@@ -258,40 +327,47 @@ export const Dashboard = () => {
             title="Skill Level"
             subtitle="XP progression system"
             icon={Brain}
-            className="p-6"
+            className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm"
           >
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm">Current Level</span>
-                <Badge variant="outline">Expert (Lvl 8)</Badge>
+                <span className="text-sm text-gray-700 dark:text-gray-300">Current Level</span>
+                <Badge variant="outline">{summary.currentLevelLabel}</Badge>
               </div>
               <div className="space-y-2">
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-sm text-gray-700 dark:text-gray-300">
                   <span>XP Progress</span>
-                  <span>2,840 / 3,200</span>
+                  <span>
+                    {summary.currentXP.toLocaleString()} / {summary.nextLevelXP.toLocaleString()}
+                  </span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full" style={{ width: '88%' }}></div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div
+                    className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-600"
+                    style={{ width: `${(summary.currentXP / summary.nextLevelXP) * 100}%` }}
+                  />
                 </div>
               </div>
             </div>
           </EnhancedCard>
 
-          {/* Study Timer */}
+          {/* Focus Timer */}
           <EnhancedCard
             title="Focus Timer"
             subtitle="Pomodoro sessions"
             icon={Timer}
-            className="p-6"
+            className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm"
           >
             <div className="text-center space-y-4">
-              <div className="text-3xl font-mono font-bold">25:00</div>
+              <div className="text-3xl font-mono font-bold text-gray-900 dark:text-gray-100">
+                25:00
+              </div>
               <div className="flex justify-center space-x-2">
-                <Button size="sm" variant="outline">
+                <Button size="sm" variant="outline" className="justify-center" aria-label="Start timer">
                   <Play className="h-4 w-4 mr-1" />
                   Start
                 </Button>
-                <Button size="sm" variant="ghost">
+                <Button size="sm" variant="ghost" aria-label="Reset timer">
                   <RotateCcw className="h-4 w-4" />
                 </Button>
               </div>
@@ -299,45 +375,91 @@ export const Dashboard = () => {
           </EnhancedCard>
         </div>
 
-        {/* 3️⃣ Bottom Section - Goals & Reminders */}
+        {/* Bottom Section: Goals & Reminders */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Weekly Goals Table */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={shouldReduceMotion ? {} : { opacity: 0, y: 20 }}
+            animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
           >
             <SummaryCard
               title="Weekly Goals"
               subtitle="Track your weekly objectives"
-              icon={Target}
-              badges={[{ label: `${summary.completedGoals}/${summary.totalGoals} Completed`, variant: "default" }]}
+              icon={Calendar}
+              badges={[
+                {
+                  label: `${summary.completedGoals}/${summary.totalGoals} Completed`,
+                  variant: 'default',
+                },
+              ]}
             >
               <div className="space-y-4">
-                {weeklyGoals.map((goal) => {
-                  const progress = (goal.current / goal.target) * 100;
-                  const StatusIcon = goal.status === 'completed' ? CheckCircle : goal.status === 'missed' ? XCircle : Clock;
-                  const statusColor = goal.status === 'completed' ? 'text-green-500' : goal.status === 'missed' ? 'text-red-500' : 'text-yellow-500';
-                  
+                {summary.weeklyGoals.map((goal) => {
+                  const progressPercent = (goal.current / goal.target) * 100;
+                  const StatusIcon =
+                    goal.status === 'completed' ? CheckCircle : goal.status === 'missed' ? XCircle : Clock;
+                  const statusColor =
+                    goal.status === 'completed'
+                      ? 'text-green-500 dark:text-green-400'
+                      : goal.status === 'missed'
+                      ? 'text-red-500 dark:text-red-400'
+                      : 'text-yellow-500 dark:text-yellow-400';
+
                   return (
-                    <div key={goal.id} className="flex items-center justify-between p-3 border border-border/50 rounded-lg hover:bg-accent/50 transition-colors">
+                    <div
+                      key={goal.id}
+                      className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => navigate(`/goals/${goal.id}`)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          navigate(`/goals/${goal.id}`);
+                        }
+                      }}
+                      aria-label={`View goal: ${goal.goal}`}
+                    >
                       <div className="flex items-center space-x-3">
-                        <StatusIcon className={`h-5 w-5 ${statusColor}`} />
+                        <StatusIcon className={`h-5 w-5 ${statusColor}`} aria-hidden="true" />
                         <div>
-                          <p className="font-medium text-sm">{goal.goal}</p>
+                          <p className="font-medium text-sm text-gray-800 dark:text-gray-200">{goal.goal}</p>
                           <div className="flex items-center space-x-2 mt-1">
-                            <div className="w-24 bg-gray-200 rounded-full h-1.5">
-                              <div 
-                                className={`h-1.5 rounded-full ${goal.status === 'completed' ? 'bg-green-500' : goal.status === 'missed' ? 'bg-red-500' : 'bg-blue-500'}`}
-                                style={{ width: `${Math.min(progress, 100)}%` }}
+                            <div
+                              role="progressbar"
+                              aria-valuenow={Math.min(progressPercent, 100)}
+                              aria-valuemin={0}
+                              aria-valuemax={100}
+                              aria-label={`${goal.current} of ${goal.target} completed`}
+                              className="w-24 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5"
+                            >
+                              <div
+                                className={`h-1.5 rounded-full ${
+                                  goal.status === 'completed'
+                                    ? 'bg-green-500 dark:bg-green-400'
+                                    : goal.status === 'missed'
+                                    ? 'bg-red-500 dark:bg-red-400'
+                                    : 'bg-blue-500 dark:bg-blue-400'
+                                }`}
+                                style={{ width: `${Math.min(progressPercent, 100)}%` }}
                               />
                             </div>
-                            <span className="text-xs text-muted-foreground">{goal.current}/{goal.target}</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              {goal.current}/{goal.target}
+                            </span>
                           </div>
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm">
-                        <Settings className="h-4 w-4" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        aria-label={`Edit goal: ${goal.goal}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/goals/${goal.id}/edit`);
+                        }}
+                      >
+                        <Settings className="h-4 w-4 text-gray-600 dark:text-gray-300" />
                       </Button>
                     </div>
                   );
@@ -348,8 +470,8 @@ export const Dashboard = () => {
 
           {/* Reminders Panel */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={shouldReduceMotion ? {} : { opacity: 0, y: 20 }}
+            animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.5 }}
           >
             <SummaryCard
@@ -358,23 +480,41 @@ export const Dashboard = () => {
               icon={Bell}
             >
               <div className="space-y-4">
-                {reminders.map((reminder) => {
-                  const priorityColor = reminder.priority === 'high' ? 'border-red-200 bg-red-50' : 
-                                       reminder.priority === 'medium' ? 'border-yellow-200 bg-yellow-50' : 
-                                       'border-blue-200 bg-blue-50';
-                  
+                {summary.reminders.map((reminder) => {
+                  const priorityClasses =
+                    reminder.priority === 'high'
+                      ? 'border-red-200 bg-red-50 dark:border-red-700 dark:bg-red-900'
+                      : reminder.priority === 'medium'
+                      ? 'border-yellow-200 bg-yellow-50 dark:border-yellow-700 dark:bg-yellow-900'
+                      : 'border-blue-200 bg-blue-50 dark:border-blue-700 dark:bg-blue-900';
+
                   return (
-                    <div key={reminder.id} className={`p-3 border rounded-lg ${priorityColor}`}>
+                    <div
+                      key={reminder.id}
+                      className={`p-3 border rounded-lg ${priorityClasses}`}
+                      role="region"
+                      aria-label={`Reminder: ${reminder.type} at ${reminder.time}`}
+                    >
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-medium text-sm">{reminder.type}</p>
-                          <p className="text-xs text-muted-foreground">{reminder.time}</p>
+                          <p className="font-medium text-sm text-gray-800 dark:text-gray-200">{reminder.type}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{reminder.time}</p>
                         </div>
                         <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {/* call API to send now */}}
+                            aria-label={`Send reminder ${reminder.type} now`}
+                          >
                             Send Now
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {/* call API to dismiss */}}
+                            aria-label={`Dismiss reminder ${reminder.type}`}
+                          >
                             Dismiss
                           </Button>
                         </div>
@@ -382,9 +522,14 @@ export const Dashboard = () => {
                     </div>
                   );
                 })}
-                
-                <Button variant="outline" className="w-full mt-4">
-                  <Settings className="h-4 w-4 mr-2" />
+
+                <Button
+                  variant="outline"
+                  className="w-full mt-4"
+                  onClick={() => navigate('/settings/notifications')}
+                  aria-label="Configure Notifications"
+                >
+                  <Settings className="h-4 w-4 mr-2 text-gray-600 dark:text-gray-300" />
                   Configure Notifications
                 </Button>
               </div>
@@ -392,15 +537,15 @@ export const Dashboard = () => {
           </motion.div>
         </div>
 
-        {/* 4️⃣ Additional Features Row */}
+        {/* Additional Features Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Achievements */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={shouldReduceMotion ? {} : { opacity: 0, y: 20 }}
+            animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.6 }}
           >
-            <Achievements />
+            <Achievements data={summary.achievements} />
           </motion.div>
 
           {/* Recent Activity */}
@@ -408,19 +553,31 @@ export const Dashboard = () => {
             title="Recent Activity"
             subtitle="Your latest coding sessions"
             icon={Activity}
-            className="p-6"
+            className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm"
           >
             <div className="space-y-3">
-              {[
-                { action: "Solved 'Two Sum'", time: "2 hours ago", platform: "LeetCode" },
-                { action: "Completed contest", time: "Yesterday", platform: "Codeforces" },
-                { action: "Weekly goal achieved", time: "2 days ago", platform: "System" }
-              ].map((activity, index) => (
-                <div key={index} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              {summary.recentActivity.map((activity) => (
+                <div
+                  key={activity.id}
+                  className="flex items-center space-x-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded transition-colors cursor-pointer"
+                  onClick={() => navigate(`/activity/${activity.id}`)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      navigate(`/activity/${activity.id}`);
+                    }
+                  }}
+                  aria-label={`${activity.action}, ${activity.time}, via ${activity.platform}`}
+                >
+                  <div className="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full" aria-hidden="true" />
                   <div className="flex-1">
-                    <p className="text-sm font-medium">{activity.action}</p>
-                    <p className="text-xs text-muted-foreground">{activity.time} • {activity.platform}</p>
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                      {activity.action}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {activity.time} • {activity.platform}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -432,19 +589,37 @@ export const Dashboard = () => {
             title="Quick Actions"
             subtitle="Fast access to common tasks"
             icon={Zap}
-            className="p-6"
+            className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm"
           >
             <div className="space-y-3">
-              <Button variant="default" className="w-full justify-start" size="sm">
-                <Calendar className="h-4 w-4 mr-2" />
+              <Button
+                variant="default"
+                className="w-full justify-start"
+                size="sm"
+                onClick={() => navigate('/daily-log')}
+                aria-label="Log Today's Practice"
+              >
+                <Calendar className="h-4 w-4 mr-2 text-gray-600 dark:text-gray-300" />
                 Log Today's Practice
               </Button>
-              <Button variant="outline" className="w-full justify-start" size="sm">
-                <Trophy className="h-4 w-4 mr-2" />
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                size="sm"
+                onClick={() => navigate('/contests')}
+                aria-label="View Contest Schedule"
+              >
+                <Trophy className="h-4 w-4 mr-2 text-gray-600 dark:text-gray-300" />
                 View Contest Schedule
               </Button>
-              <Button variant="outline" className="w-full justify-start" size="sm">
-                <FileText className="h-4 w-4 mr-2" />
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                size="sm"
+                onClick={() => navigate('/weekly-goals')}
+                aria-label="Weekly Review"
+              >
+                <FileText className="h-4 w-4 mr-2 text-gray-600 dark:text-gray-300" />
                 Weekly Review
               </Button>
             </div>
