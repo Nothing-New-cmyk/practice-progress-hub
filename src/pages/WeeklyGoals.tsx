@@ -2,395 +2,247 @@
 import { useState } from 'react';
 import { AppLayout } from '@/components/layouts/AppLayout';
 import { SectionHeader } from '@/components/ui/section-header';
-import { EnhancedCard } from '@/components/ui/enhanced-card';
-import { AnimatedCounter } from '@/components/ui/animated-counter';
-import { EnhancedProgress } from '@/components/ui/enhanced-progress';
-import { EnhancedBadge } from '@/components/ui/enhanced-badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FormInput } from '@/components/ui/form-input';
-import { FormSelect } from '@/components/ui/form-select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useWeeklyGoals } from '@/hooks/useWeeklyGoals';
-import { Target, Plus, CheckCircle, Clock, TrendingUp, Edit, Trash2, Calendar } from 'lucide-react';
-import { format, startOfWeek, addDays } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { Target, Plus, Edit, Trash2, CheckCircle, Clock, XCircle } from 'lucide-react';
 
-const statusOptions = [
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'missed', label: 'Missed' },
-  { value: 'paused', label: 'Paused' },
-];
+interface WeeklyGoal {
+  id: number;
+  goal: string;
+  target: number;
+  current: number;
+  status: 'in_progress' | 'completed' | 'missed';
+}
 
 export const WeeklyGoals = () => {
-  const { goals, loading, creating, createGoal, updateGoal, deleteGoal } = useWeeklyGoals();
-  const [showForm, setShowForm] = useState(false);
-  const [editingGoal, setEditingGoal] = useState<string | null>(null);
+  const { toast } = useToast();
+  const [goals, setGoals] = useState<WeeklyGoal[]>([
+    { id: 1, goal: 'Solve 20 Medium Problems', target: 20, current: 14, status: 'in_progress' },
+    { id: 2, goal: 'Complete 5 Contest Problems', target: 5, current: 5, status: 'completed' },
+    { id: 3, goal: 'Study Dynamic Programming', target: 1, current: 0, status: 'missed' }
+  ]);
 
-  // Form state
-  const [goalDescription, setGoalDescription] = useState('');
-  const [targetValue, setTargetValue] = useState('');
-  const [currentValue, setCurrentValue] = useState('');
-  const [status, setStatus] = useState('in_progress');
-  const [reviewNotes, setReviewNotes] = useState('');
-  const [weekStartDate, setWeekStartDate] = useState(
-    format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd')
-  );
+  const [newGoal, setNewGoal] = useState({
+    goal: '',
+    target: ''
+  });
 
-  const resetForm = () => {
-    setGoalDescription('');
-    setTargetValue('');
-    setCurrentValue('');
-    setStatus('in_progress');
-    setReviewNotes('');
-    setWeekStartDate(format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'));
-    setEditingGoal(null);
-  };
+  const [weeklyReview, setWeeklyReview] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleAddGoal = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newGoal.goal || !newGoal.target) return;
 
-    if (editingGoal) {
-      await updateGoal(editingGoal, {
-        goal_description: goalDescription,
-        target_value: parseInt(targetValue) || 0,
-        current_value: parseInt(currentValue) || 0,
-        status: status as any,
-        review_notes: reviewNotes || null,
-        week_start_date: weekStartDate,
-      });
-    } else {
-      const result = await createGoal({
-        goal_description: goalDescription,
-        target_value: parseInt(targetValue) || 0,
-        current_value: parseInt(currentValue) || 0,
-        status: status as any,
-        review_notes: reviewNotes || null,
-        week_start_date: weekStartDate,
-      });
+    const goal: WeeklyGoal = {
+      id: Date.now(),
+      goal: newGoal.goal,
+      target: parseInt(newGoal.target),
+      current: 0,
+      status: 'in_progress'
+    };
 
-      if (result?.success) {
-        resetForm();
-        setShowForm(false);
+    setGoals(prev => [...prev, goal]);
+    setNewGoal({ goal: '', target: '' });
+    
+    toast({
+      title: "Goal added",
+      description: "Your new weekly goal has been created successfully.",
+    });
+  };
+
+  const updateGoalProgress = (id: number, newCurrent: number) => {
+    setGoals(prev => prev.map(goal => {
+      if (goal.id === id) {
+        const updated = { ...goal, current: newCurrent };
+        if (newCurrent >= goal.target) {
+          updated.status = 'completed';
+        } else {
+          updated.status = 'in_progress';
+        }
+        return updated;
       }
-    }
-
-    if (editingGoal) {
-      resetForm();
-      setShowForm(false);
-    }
+      return goal;
+    }));
   };
 
-  const handleEdit = (goal: any) => {
-    setGoalDescription(goal.goal_description);
-    setTargetValue(goal.target_value.toString());
-    setCurrentValue(goal.current_value.toString());
-    setStatus(goal.status);
-    setReviewNotes(goal.review_notes || '');
-    setWeekStartDate(goal.week_start_date);
-    setEditingGoal(goal.id);
-    setShowForm(true);
-  };
-
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'completed': return 'success';
-      case 'in_progress': return 'default';
-      case 'missed': return 'destructive';
-      case 'paused': return 'warning';
-      default: return 'outline';
-    }
+  const deleteGoal = (id: number) => {
+    setGoals(prev => prev.filter(goal => goal.id !== id));
+    toast({
+      title: "Goal deleted",
+      description: "The goal has been removed successfully.",
+    });
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed': return CheckCircle;
-      case 'in_progress': return Clock;
-      case 'missed': return Target;
+      case 'missed': return XCircle;
       default: return Clock;
     }
   };
 
-  const completedGoals = goals.filter(goal => goal.status === 'completed').length;
-  const inProgressGoals = goals.filter(goal => goal.status === 'in_progress').length;
-  const totalProgress = goals.length > 0 
-    ? Math.round(goals.reduce((sum, goal) => sum + (goal.current_value / goal.target_value * 100), 0) / goals.length)
-    : 0;
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'text-green-500';
+      case 'missed': return 'text-red-500';
+      default: return 'text-yellow-500';
+    }
+  };
+
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'completed': return 'default' as const;
+      case 'missed': return 'destructive' as const;
+      default: return 'secondary' as const;
+    }
+  };
 
   return (
     <AppLayout>
-      <div className="p-4 md:p-6 space-y-8">
+      <div className="p-4 md:p-6 space-y-8 max-w-4xl mx-auto">
         <SectionHeader
           title="Weekly Goals"
           subtitle="Set and track your weekly learning objectives"
           icon={Target}
-          action={{
-            label: editingGoal ? 'Cancel Edit' : showForm ? 'Cancel' : 'New Goal',
-            onClick: () => {
-              if (editingGoal || showForm) {
-                resetForm();
-                setShowForm(false);
-              } else {
-                setShowForm(true);
-              }
-            },
-            variant: showForm || editingGoal ? 'outline' : 'default'
-          }}
         />
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <EnhancedCard
-            title="Total Goals"
-            icon={Target}
-            iconColor="bg-blue-100 text-blue-600"
-            gradient
-          >
-            <AnimatedCounter 
-              value={goals.length} 
-              className="text-3xl font-bold text-blue-600"
-            />
-          </EnhancedCard>
-          
-          <EnhancedCard
-            title="Completed"
-            icon={CheckCircle}
-            iconColor="bg-green-100 text-green-600"
-            gradient
-          >
-            <AnimatedCounter 
-              value={completedGoals} 
-              className="text-3xl font-bold text-green-600"
-            />
-          </EnhancedCard>
-
-          <EnhancedCard
-            title="In Progress"
-            icon={Clock}
-            iconColor="bg-orange-100 text-orange-600"
-            gradient
-          >
-            <AnimatedCounter 
-              value={inProgressGoals} 
-              className="text-3xl font-bold text-orange-600"
-            />
-          </EnhancedCard>
-
-          <EnhancedCard
-            title="Avg Progress"
-            icon={TrendingUp}
-            iconColor="bg-purple-100 text-purple-600"
-            gradient
-          >
-            <AnimatedCounter 
-              value={totalProgress} 
-              suffix="%" 
-              className="text-3xl font-bold text-purple-600"
-            />
-          </EnhancedCard>
-        </div>
-
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Form Section */}
-          {showForm && (
-            <div className="xl:col-span-1">
-              <EnhancedCard
-                title={editingGoal ? 'Edit Goal' : 'Create New Goal'}
-                icon={editingGoal ? Edit : Plus}
-                iconColor="bg-indigo-100 text-indigo-600"
-                gradient
-              >
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <FormInput
-                    label="Week Start Date"
-                    id="weekStartDate"
-                    type="date"
-                    value={weekStartDate}
-                    onChange={setWeekStartDate}
+        {/* Add New Goal */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              Add New Goal
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleAddGoal} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-2">
+                  <Label htmlFor="goalDescription">Goal Description</Label>
+                  <Input
+                    id="goalDescription"
+                    placeholder="e.g., Solve 15 Dynamic Programming problems"
+                    value={newGoal.goal}
+                    onChange={(e) => setNewGoal(prev => ({ ...prev, goal: e.target.value }))}
                     required
                   />
-
-                  <div>
-                    <label htmlFor="goalDescription" className="block text-sm font-medium mb-2">
-                      Goal Description
-                    </label>
-                    <Textarea
-                      id="goalDescription"
-                      value={goalDescription}
-                      onChange={(e) => setGoalDescription(e.target.value)}
-                      placeholder="e.g., Solve 20 LeetCode problems, Complete Binary Search chapter..."
-                      rows={3}
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <FormInput
-                      label="Target Value"
-                      id="targetValue"
-                      type="number"
-                      value={targetValue}
-                      onChange={setTargetValue}
-                      placeholder="20"
-                      required
-                    />
-                    <FormInput
-                      label="Current Value"
-                      id="currentValue"
-                      type="number"
-                      value={currentValue}
-                      onChange={setCurrentValue}
-                      placeholder="0"
-                      required
-                    />
-                  </div>
-
-                  <FormSelect
-                    label="Status"
-                    id="status"
-                    value={status}
-                    onChange={setStatus}
-                    options={statusOptions}
+                </div>
+                <div>
+                  <Label htmlFor="targetValue">Target Value</Label>
+                  <Input
+                    id="targetValue"
+                    type="number"
+                    min="1"
+                    placeholder="15"
+                    value={newGoal.target}
+                    onChange={(e) => setNewGoal(prev => ({ ...prev, target: e.target.value }))}
                     required
                   />
-
-                  <div>
-                    <label htmlFor="reviewNotes" className="block text-sm font-medium mb-2">
-                      Review Notes
-                    </label>
-                    <Textarea
-                      id="reviewNotes"
-                      value={reviewNotes}
-                      onChange={(e) => setReviewNotes(e.target.value)}
-                      placeholder="Reflections, challenges, adjustments needed..."
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button type="submit" disabled={creating} className="flex-1">
-                      {creating ? "Saving..." : editingGoal ? "Update Goal" : "Create Goal"}
-                    </Button>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => {
-                        resetForm();
-                        setShowForm(false);
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </form>
-              </EnhancedCard>
-            </div>
-          )}
-
-          {/* Goals List */}
-          <div className={showForm ? "xl:col-span-2" : "xl:col-span-3"}>
-            <EnhancedCard
-              title="Goals Overview"
-              icon={Target}
-              iconColor="bg-blue-100 text-blue-600"
-              gradient
-            >
-              {loading ? (
-                <div className="space-y-4">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="animate-pulse p-4 border rounded-lg">
-                      <div className="h-4 bg-gray-200 rounded w-2/3 mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                    </div>
-                  ))}
                 </div>
-              ) : goals.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 mx-auto mb-4">
-                    <Target className="h-8 w-8 text-blue-600" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2">No goals set yet</h3>
-                  <p className="text-muted-foreground mb-6">
-                    Start setting weekly goals to track your learning progress
-                  </p>
-                  <Button onClick={() => setShowForm(true)} size="lg">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Your First Goal
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {goals.map((goal) => {
-                    const progress = Math.round((goal.current_value / goal.target_value) * 100);
-                    const weekEnd = addDays(new Date(goal.week_start_date), 6);
-                    const StatusIcon = getStatusIcon(goal.status);
-                    
-                    return (
-                      <div key={goal.id} className="p-6 border border-gray-200/50 rounded-xl hover:shadow-md transition-all duration-300 bg-gradient-to-br from-white to-gray-50/30">
-                        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex flex-wrap items-center gap-3 mb-3">
-                              <EnhancedBadge 
-                                variant={getStatusVariant(goal.status)}
-                                icon={StatusIcon}
-                                size="md"
-                              >
-                                {goal.status.replace('_', ' ')}
-                              </EnhancedBadge>
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <Calendar className="h-3 w-3" />
-                                {format(new Date(goal.week_start_date), 'MMM dd')} - {format(weekEnd, 'MMM dd, yyyy')}
-                              </div>
-                            </div>
-                            
-                            <h4 className="font-semibold text-lg mb-3">
-                              {goal.goal_description}
-                            </h4>
-                            
-                            <div className="space-y-3 mb-4">
-                              <EnhancedProgress
-                                value={goal.current_value}
-                                max={goal.target_value}
-                                variant={getStatusVariant(goal.status) === 'success' ? 'success' : 'default'}
-                                showLabel
-                                label={`Progress: ${goal.current_value}/${goal.target_value}`}
-                                animated
+              </div>
+              <Button type="submit" className="w-full md:w-auto">
+                Add Goal
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Current Goals */}
+        <Card>
+          <CardHeader>
+            <CardTitle>This Week's Goals</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {goals.map((goal) => {
+                const progress = (goal.current / goal.target) * 100;
+                const StatusIcon = getStatusIcon(goal.status);
+                const statusColor = getStatusColor(goal.status);
+                
+                return (
+                  <div key={goal.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors">
+                    <div className="flex items-center space-x-3 flex-1">
+                      <StatusIcon className={`h-5 w-5 ${statusColor}`} />
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{goal.goal}</p>
+                        <div className="flex items-center space-x-4 mt-2">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-32 bg-gray-200 rounded-full h-2">
+                              <div 
+                                className={`h-2 rounded-full ${goal.status === 'completed' ? 'bg-green-500' : goal.status === 'missed' ? 'bg-red-500' : 'bg-blue-500'}`}
+                                style={{ width: `${Math.min(progress, 100)}%` }}
                               />
                             </div>
-
-                            {goal.review_notes && (
-                              <p className="text-sm text-muted-foreground bg-gray-50 p-3 rounded-lg">
-                                {goal.review_notes}
-                              </p>
-                            )}
+                            <span className="text-sm text-muted-foreground">
+                              {goal.current}/{goal.target}
+                            </span>
                           </div>
-
-                          <div className="flex gap-2">
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => handleEdit(goal)}
-                              className="transition-all duration-200 hover:scale-105"
-                            >
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => deleteGoal(goal.id)}
-                              className="transition-all duration-200 hover:scale-105 hover:border-red-300 hover:text-red-600"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
+                          <Badge variant={getStatusBadgeVariant(goal.status)}>
+                            {goal.status.replace('_', ' ')}
+                          </Badge>
                         </div>
                       </div>
-                    );
-                  })}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Input
+                        type="number"
+                        min="0"
+                        max={goal.target * 2}
+                        value={goal.current}
+                        onChange={(e) => updateGoalProgress(goal.id, parseInt(e.target.value) || 0)}
+                        className="w-20"
+                      />
+                      <Button variant="ghost" size="sm" onClick={() => deleteGoal(goal.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+              
+              {goals.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No goals set for this week. Add your first goal above!</p>
                 </div>
               )}
-            </EnhancedCard>
-          </div>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Weekly Review */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Weekly Review</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="weeklyReview">Reflection & Notes</Label>
+                <Textarea
+                  id="weeklyReview"
+                  placeholder="How did this week go? What went well? What challenges did you face? What would you like to focus on next week?"
+                  value={weeklyReview}
+                  onChange={(e) => setWeeklyReview(e.target.value)}
+                  rows={6}
+                />
+              </div>
+              <Button onClick={() => {
+                toast({
+                  title: "Review saved",
+                  description: "Your weekly review has been saved successfully.",
+                });
+              }}>
+                Save Weekly Review
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </AppLayout>
   );

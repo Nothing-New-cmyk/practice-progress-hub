@@ -1,126 +1,124 @@
 
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Award, Trophy, Star, Target, Zap, Calendar } from 'lucide-react';
+import { Trophy, Star, Flame, Target, Clock } from 'lucide-react';
 
 interface Achievement {
   id: string;
   title: string;
   description: string;
-  icon: React.ReactNode;
-  earned: boolean;
-  earnedDate?: string;
+  icon: React.ElementType;
+  unlocked: boolean;
   progress?: number;
   maxProgress?: number;
 }
 
 const achievements: Achievement[] = [
   {
-    id: '1',
+    id: 'first-solve',
     title: 'First Steps',
     description: 'Solve your first problem',
-    icon: <Star className="h-6 w-6" />,
-    earned: true,
-    earnedDate: '2024-05-01'
+    icon: Star,
+    unlocked: true,
   },
   {
-    id: '2',
+    id: 'problem-solver',
+    title: 'Problem Solver',
+    description: 'Solve 100 problems',
+    icon: Trophy,
+    unlocked: true,
+    progress: 100,
+    maxProgress: 100,
+  },
+  {
+    id: 'streak-master',
     title: 'Streak Master',
     description: 'Maintain a 7-day streak',
-    icon: <Zap className="h-6 w-6" />,
-    earned: true,
-    earnedDate: '2024-05-15'
+    icon: Flame,
+    unlocked: false,
+    progress: 5,
+    maxProgress: 7,
   },
   {
-    id: '3',
-    title: 'Century Club',
-    description: 'Solve 100 problems',
-    icon: <Trophy className="h-6 w-6" />,
-    earned: false,
-    progress: 75,
-    maxProgress: 100
+    id: 'goal-achiever',
+    title: 'Goal Achiever',
+    description: 'Complete 10 weekly goals',
+    icon: Target,
+    unlocked: false,
+    progress: 6,
+    maxProgress: 10,
   },
   {
-    id: '4',
-    title: 'Weekly Warrior',
-    description: 'Complete weekly goals for 4 weeks',
-    icon: <Target className="h-6 w-6" />,
-    earned: false,
-    progress: 2,
-    maxProgress: 4
+    id: 'speed-demon',
+    title: 'Speed Demon',
+    description: 'Solve 10 problems in one day',
+    icon: Clock,
+    unlocked: false,
+    progress: 3,
+    maxProgress: 10,
   },
-  {
-    id: '5',
-    title: 'Time Master',
-    description: 'Study for 50 hours total',
-    icon: <Calendar className="h-6 w-6" />,
-    earned: false,
-    progress: 32,
-    maxProgress: 50
-  }
 ];
 
-export const Achievements = () => {
+export const Achievements: React.FC = () => {
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Award className="h-5 w-5 text-yellow-500" />
+          <Trophy className="h-5 w-5" />
           Achievements
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-4">
-          {achievements.map((achievement) => (
-            <div 
-              key={achievement.id} 
-              className={`p-4 border rounded-lg transition-all ${
-                achievement.earned 
-                  ? 'bg-yellow-50 border-yellow-200' 
-                  : 'bg-gray-50 border-gray-200'
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                <div className={`p-2 rounded-lg ${
-                  achievement.earned ? 'bg-yellow-100 text-yellow-600' : 'bg-gray-100 text-gray-400'
+        <div className="space-y-3">
+          {achievements.map((achievement) => {
+            const Icon = achievement.icon;
+            const progressPercentage = achievement.progress && achievement.maxProgress 
+              ? (achievement.progress / achievement.maxProgress) * 100 
+              : 0;
+
+            return (
+              <div
+                key={achievement.id}
+                className={`flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                  achievement.unlocked 
+                    ? 'bg-green-50 border border-green-200' 
+                    : 'bg-gray-50 border border-gray-200'
+                }`}
+              >
+                <div className={`p-2 rounded-full ${
+                  achievement.unlocked ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'
                 }`}>
-                  {achievement.icon}
+                  <Icon className="h-4 w-4" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
+                
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
                     <h4 className="font-medium text-sm">{achievement.title}</h4>
-                    {achievement.earned && (
-                      <Badge className="bg-yellow-500 text-white text-xs">
-                        Earned
-                      </Badge>
+                    {achievement.unlocked && (
+                      <Badge variant="default" className="text-xs">Unlocked</Badge>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {achievement.description}
-                  </p>
-                  {achievement.earnedDate && (
-                    <p className="text-xs text-yellow-600 mt-1">
-                      Earned on {new Date(achievement.earnedDate).toLocaleDateString()}
-                    </p>
-                  )}
-                  {!achievement.earned && achievement.progress && achievement.maxProgress && (
+                  <p className="text-xs text-muted-foreground">{achievement.description}</p>
+                  
+                  {!achievement.unlocked && achievement.progress !== undefined && achievement.maxProgress && (
                     <div className="mt-2">
-                      <div className="flex justify-between text-xs text-muted-foreground">
+                      <div className="flex justify-between text-xs text-muted-foreground mb-1">
                         <span>Progress</span>
                         <span>{achievement.progress}/{achievement.maxProgress}</span>
                       </div>
-                      <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                      <div className="w-full bg-gray-200 rounded-full h-1.5">
                         <div 
-                          className="bg-yellow-500 h-1.5 rounded-full transition-all"
-                          style={{ width: `${(achievement.progress / achievement.maxProgress) * 100}%` }}
+                          className="bg-blue-500 h-1.5 rounded-full transition-all duration-300"
+                          style={{ width: `${progressPercentage}%` }}
                         />
                       </div>
                     </div>
                   )}
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
     </Card>

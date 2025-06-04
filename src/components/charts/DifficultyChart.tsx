@@ -1,6 +1,8 @@
 
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
+import { TrendingUp } from 'lucide-react';
 
 interface DifficultyData {
   difficulty: string;
@@ -12,20 +14,26 @@ interface DifficultyChartProps {
   data: DifficultyData[];
 }
 
-export const DifficultyChart = ({ data }: DifficultyChartProps) => {
+export const DifficultyChart: React.FC<DifficultyChartProps> = ({ data }) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Problems by Difficulty</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <TrendingUp className="h-5 w-5" />
+          Difficulty Mastery
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={data}>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="difficulty" />
             <YAxis />
-            <Tooltip />
-            <Bar dataKey="count" fill="#8884d8" radius={[4, 4, 0, 0]} />
+            <Bar 
+              dataKey="count" 
+              fill={(entry) => entry.color}
+              radius={[4, 4, 0, 0]}
+            />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>

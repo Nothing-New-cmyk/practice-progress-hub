@@ -1,6 +1,7 @@
 
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
+import { Calendar, Activity } from 'lucide-react';
 
 interface HeatmapData {
   date: string;
@@ -10,101 +11,69 @@ interface HeatmapData {
 
 interface ActivityHeatmapProps {
   data: HeatmapData[];
-  className?: string;
 }
 
-export const ActivityHeatmap = ({ data, className }: ActivityHeatmapProps) => {
-  // Generate last 12 weeks of dates
-  const generateWeeks = () => {
-    const weeks = [];
-    const today = new Date();
-    
-    for (let week = 11; week >= 0; week--) {
-      const weekStart = new Date(today);
-      weekStart.setDate(today.getDate() - (week * 7) - today.getDay());
-      
-      const weekDays = [];
-      for (let day = 0; day < 7; day++) {
-        const date = new Date(weekStart);
-        date.setDate(weekStart.getDate() + day);
-        weekDays.push(date.toISOString().split('T')[0]);
-      }
-      weeks.push(weekDays);
-    }
-    return weeks;
-  };
-
-  const weeks = generateWeeks();
-  
-  const getDataForDate = (date: string) => {
-    return data.find(d => d.date === date) || { date, count: 0, level: 0 as const };
-  };
-
-  const getLevelColor = (level: number) => {
+export const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ data }) => {
+  const getColorClass = (level: number) => {
     switch (level) {
       case 0: return 'bg-gray-100';
       case 1: return 'bg-green-200';
       case 2: return 'bg-green-300';
-      case 3: return 'bg-green-400';
-      case 4: return 'bg-green-500';
+      case 3: return 'bg-green-500';
+      case 4: return 'bg-green-700';
       default: return 'bg-gray-100';
     }
   };
 
+  // Generate weeks for the last 52 weeks
+  const weeks = [];
+  for (let i = 0; i < 52; i++) {
+    const week = [];
+    for (let j = 0; j < 7; j++) {
+      const date = new Date();
+      date.setDate(date.getDate() - (i * 7 + j));
+      const dateStr = date.toISOString().split('T')[0];
+      const dayData = data.find(d => d.date === dateStr) || { date: dateStr, count: 0, level: 0 };
+      week.push(dayData);
+    }
+    weeks.push(week);
+  }
+
   return (
-    <Card className={cn('w-full', className)}>
+    <Card>
       <CardHeader>
-        <CardTitle className="text-base md:text-lg">Activity Heatmap</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <Activity className="h-5 w-5" />
+          Activity Heatmap
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
-          {/* Mobile view - simplified */}
-          <div className="block md:hidden">
-            <div className="grid grid-cols-7 gap-1">
-              {weeks.slice(-4).flat().map((date) => {
-                const dayData = getDataForDate(date);
-                return (
+        <div className="space-y-4">
+          <div className="grid grid-cols-53 gap-1 overflow-x-auto">
+            {weeks.reverse().map((week, weekIndex) => (
+              <div key={weekIndex} className="grid grid-rows-7 gap-1">
+                {week.map((day, dayIndex) => (
                   <div
-                    key={date}
-                    className={`w-6 h-6 rounded-sm ${getLevelColor(dayData.level)}`}
-                    title={`${date}: ${dayData.count} problems`}
+                    key={`${weekIndex}-${dayIndex}`}
+                    className={`w-3 h-3 rounded-sm ${getColorClass(day.level)} cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all`}
+                    title={`${day.date}: ${day.count} problems solved`}
                   />
-                );
-              })}
-            </div>
-            <div className="text-xs text-muted-foreground mt-2">
-              Last 4 weeks activity
-            </div>
-          </div>
-
-          {/* Desktop view - full heatmap */}
-          <div className="hidden md:block">
-            <div className="flex gap-1 overflow-x-auto">
-              {weeks.map((week, weekIndex) => (
-                <div key={weekIndex} className="flex flex-col gap-1">
-                  {week.map((date) => {
-                    const dayData = getDataForDate(date);
-                    return (
-                      <div
-                        key={date}
-                        className={`w-3 h-3 rounded-sm ${getLevelColor(dayData.level)} hover:ring-2 hover:ring-gray-300 transition-all`}
-                        title={`${date}: ${dayData.count} problems`}
-                      />
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-            
-            <div className="flex items-center justify-between mt-4 text-xs text-muted-foreground">
-              <span>Less</span>
-              <div className="flex gap-1">
-                {[0, 1, 2, 3, 4].map(level => (
-                  <div key={level} className={`w-3 h-3 rounded-sm ${getLevelColor(level)}`} />
                 ))}
               </div>
-              <span>More</span>
+            ))}
+          </div>
+          
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>Less</span>
+            <div className="flex space-x-1">
+              {[0, 1, 2, 3, 4].map(level => (
+                <div
+                  key={level}
+                  className={`w-3 h-3 rounded-sm ${getColorClass(level)}`}
+                />
+              ))}
             </div>
+            <span>More</span>
           </div>
         </div>
       </CardContent>

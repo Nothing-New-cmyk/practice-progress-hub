@@ -17,6 +17,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { DailyLog } from "./pages/DailyLog";
 import { ContestLog } from "./pages/ContestLog";
 import { WeeklyGoals } from "./pages/WeeklyGoals";
+import { Analytics } from "./pages/Analytics";
 import { Settings } from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -91,6 +92,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <WeeklyGoals />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/analytics" 
+        element={
+          <ProtectedRoute>
+            <Analytics />
           </ProtectedRoute>
         } 
       />
