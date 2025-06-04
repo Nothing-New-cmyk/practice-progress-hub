@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { AppLayout } from '@/components/layouts/AppLayout';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -317,13 +316,13 @@ export const Dashboard = () => {
               <div className="space-y-4">
                 {weeklyGoals.map((goal) => {
                   const progress = (goal.current / goal.target) * 100;
-                  const statusIcon = goal.status === 'completed' ? CheckCircle : goal.status === 'missed' ? XCircle : Clock;
+                  const StatusIcon = goal.status === 'completed' ? CheckCircle : goal.status === 'missed' ? XCircle : Clock;
                   const statusColor = goal.status === 'completed' ? 'text-green-500' : goal.status === 'missed' ? 'text-red-500' : 'text-yellow-500';
                   
                   return (
                     <div key={goal.id} className="flex items-center justify-between p-3 border border-border/50 rounded-lg hover:bg-accent/50 transition-colors">
                       <div className="flex items-center space-x-3">
-                        <statusIcon className={`h-5 w-5 ${statusColor}`} />
+                        <StatusIcon className={`h-5 w-5 ${statusColor}`} />
                         <div>
                           <p className="font-medium text-sm">{goal.goal}</p>
                           <div className="flex items-center space-x-2 mt-1">
