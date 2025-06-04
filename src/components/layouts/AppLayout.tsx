@@ -2,9 +2,9 @@
 import React, { useState, useEffect } from 'react'
 import { Navbar } from '@/components/Navbar'
 import { FloatingActionButton } from '@/components/ui/floating-action-button'
-import { ThemeToggle } from '@/components/ui/theme-toggle'
-import { OnboardingTooltip } from '@/components/ui/onboarding-tooltip'
+import { OnboardingDialog } from '@/components/ui/onboarding-dialog'
 import { PageTransition } from '@/components/ui/page-transition'
+import { UserPreferencesService } from '@/services/userPreferences'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
 
@@ -20,46 +20,21 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   showFAB = true 
 }) => {
   const [showOnboarding, setShowOnboarding] = useState(false)
-  const [onboardingStep, setOnboardingStep] = useState(0)
-
-  const onboardingSteps = [
-    {
-      targetId: 'dashboard-nav',
-      title: 'Dashboard',
-      content: 'View your practice progress and analytics here.'
-    },
-    {
-      targetId: 'daily-log-nav',
-      title: 'Daily Log',
-      content: 'Log your daily practice sessions and track your improvement.'
-    },
-    {
-      targetId: 'settings-nav',
-      title: 'Settings',
-      content: 'Customize your preferences and notification settings.'
-    }
-  ]
 
   useEffect(() => {
-    const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding')
-    if (!hasSeenOnboarding) {
-      setShowOnboarding(true)
+    const checkOnboarding = async () => {
+      try {
+        const preferences = await UserPreferencesService.getPreferences()
+        if (!preferences.hasSeenOnboarding) {
+          setShowOnboarding(true)
+        }
+      } catch (error) {
+        console.error('Error checking onboarding status:', error)
+      }
     }
+
+    checkOnboarding()
   }, [])
-
-  const handleOnboardingNext = () => {
-    if (onboardingStep < onboardingSteps.length - 1) {
-      setOnboardingStep(onboardingStep + 1)
-    } else {
-      setShowOnboarding(false)
-      localStorage.setItem('hasSeenOnboarding', 'true')
-    }
-  }
-
-  const handleOnboardingSkip = () => {
-    setShowOnboarding(false)
-    localStorage.setItem('hasSeenOnboarding', 'true')
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-gray-900 dark:via-gray-900 dark:to-blue-950/30 relative overflow-hidden">
@@ -111,14 +86,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 
       {/* Navbar */}
       <Navbar />
-      
-      {/* Theme toggle in top right */}
-      <div className="fixed top-4 right-4 z-40">
-        <ThemeToggle />
-      </div>
 
-      {/* Main content without sidebar margin */}
-      <main className={cn("transition-all duration-300 relative z-10", className)}>
+      {/* Main content */}
+      <main className={cn("relative z-10", className)}>
         <PageTransition key={window.location.pathname}>
           {children}
         </PageTransition>
@@ -126,16 +96,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       
       {showFAB && <FloatingActionButton />}
 
-      {/* Onboarding tooltips */}
-      {showOnboarding && onboardingStep < onboardingSteps.length && (
-        <OnboardingTooltip
-          {...onboardingSteps[onboardingStep]}
-          step={onboardingStep + 1}
-          totalSteps={onboardingSteps.length}
-          onNext={handleOnboardingNext}
-          onSkip={handleOnboardingSkip}
-        />
-      )}
+      {/* Onboarding dialog */}
+      <OnboardingDialog 
+        open={showOnboarding} 
+        onOpenChange={setShowOnboarding}
+      />
     </div>
   )
 }

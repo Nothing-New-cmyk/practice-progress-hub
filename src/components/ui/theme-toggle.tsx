@@ -14,11 +14,11 @@ export const ThemeToggle = () => {
       size="icon"
       onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
       className={cn(
-        "relative h-9 w-9 rounded-xl",
-        "bg-white/10 backdrop-blur-sm border border-white/20",
-        "hover:bg-white/20 transition-all duration-300",
-        "dark:bg-gray-800/50 dark:border-gray-700/50 dark:hover:bg-gray-700/50"
+        "relative h-9 w-9 rounded-xl transition-all duration-300",
+        "hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       )}
+      aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+      title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
     >
       <Sun className={cn(
         "h-4 w-4 transition-all duration-300",
@@ -28,7 +28,6 @@ export const ThemeToggle = () => {
         "absolute h-4 w-4 transition-all duration-300",
         theme === 'dark' ? 'rotate-0 scale-100' : '-rotate-90 scale-0'
       )} />
-      <span className="sr-only">Toggle theme</span>
     </Button>
   )
 }
