@@ -4,15 +4,15 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Home, PlusCircle, Calendar, Target, Settings, LogOut, BarChart3 } from 'lucide-react';
+import { Menu, Home, PlusCircle, Calendar, Target, Settings, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: Home, id: 'dashboard-nav' },
-  { name: 'Daily Log', href: '/daily-log', icon: PlusCircle, id: 'daily-log-nav' },
-  { name: 'Contest Log', href: '/contest-log', icon: Calendar, id: 'contest-log-nav' },
-  { name: 'Weekly Goals', href: '/weekly-goals', icon: Target, id: 'weekly-goals-nav' },
-  { name: 'Settings', href: '/settings', icon: Settings, id: 'settings-nav' },
+  { name: 'Dashboard', href: '/dashboard', icon: Home },
+  { name: 'Daily Log', href: '/daily-log', icon: PlusCircle },
+  { name: 'Contest Log', href: '/contest-log', icon: Calendar },
+  { name: 'Weekly Goals', href: '/weekly-goals', icon: Target },
+  { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
 export const Navbar = () => {
@@ -36,7 +36,6 @@ export const Navbar = () => {
           <Link
             key={item.name}
             to={item.href}
-            id={item.id}
             onClick={() => mobile && setIsOpen(false)}
             className={cn(
               "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:bg-accent",
@@ -64,10 +63,7 @@ export const Navbar = () => {
       {/* Desktop Sidebar */}
       <div className="hidden md:flex h-full w-64 flex-col fixed left-0 top-0 z-40 bg-background border-r">
         <div className="flex h-14 items-center border-b px-6">
-          <div className="flex items-center space-x-2">
-            <BarChart3 className="h-6 w-6 text-primary" />
-            <h1 className="text-lg font-semibold">DSA Tracker</h1>
-          </div>
+          <h1 className="text-lg font-semibold">DSA Tracker</h1>
         </div>
         <nav className="flex-1 space-y-1 p-4">
           <NavLinks />
@@ -75,11 +71,8 @@ export const Navbar = () => {
       </div>
 
       {/* Mobile Header */}
-      <div className="md:hidden flex h-14 items-center justify-between border-b px-4 bg-background fixed top-0 left-0 right-0 z-50">
-        <div className="flex items-center space-x-2">
-          <BarChart3 className="h-5 w-5 text-primary" />
-          <h1 className="text-lg font-semibold">DSA Tracker</h1>
-        </div>
+      <div className="md:hidden flex h-14 items-center justify-between border-b px-4 bg-background">
+        <h1 className="text-lg font-semibold">DSA Tracker</h1>
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="sm">

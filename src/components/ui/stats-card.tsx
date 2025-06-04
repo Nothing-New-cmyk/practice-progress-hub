@@ -1,55 +1,71 @@
 
-import React from 'react';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { ProgressRing } from '@/components/ui/progress-ring';
 import { cn } from '@/lib/utils';
+import { LucideIcon } from 'lucide-react';
 
 interface StatsCardProps {
   title: string;
   value: string | number;
-  change?: number;
-  changeLabel?: string;
-  icon?: React.ElementType;
-  className?: string;
+  subtitle?: string;
+  icon?: LucideIcon;
+  progress?: number;
   trend?: 'up' | 'down' | 'neutral';
+  trendValue?: string;
+  className?: string;
+  color?: 'primary' | 'success' | 'warning' | 'error';
 }
 
-export const StatsCard: React.FC<StatsCardProps> = ({
+export const StatsCard = ({
   title,
   value,
-  change,
-  changeLabel,
+  subtitle,
   icon: Icon,
+  progress,
+  trend,
+  trendValue,
   className,
-  trend = 'neutral'
-}) => {
-  const getTrendColor = () => {
-    switch (trend) {
-      case 'up': return 'text-green-600 dark:text-green-400';
-      case 'down': return 'text-red-600 dark:text-red-400';
-      default: return 'text-muted-foreground';
-    }
+  color = 'primary'
+}: StatsCardProps) => {
+  const trendColors = {
+    up: 'text-green-600 bg-green-50',
+    down: 'text-red-600 bg-red-50',
+    neutral: 'text-gray-600 bg-gray-50'
   };
 
-  const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : null;
-
   return (
-    <Card className={cn("p-6 hover:shadow-lg transition-shadow", className)}>
-      <div className="flex items-center justify-between space-y-0 pb-2">
-        <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
-        {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
-      </div>
-      <div className="space-y-1">
-        <div className="text-2xl font-bold">{value}</div>
-        {change !== undefined && (
-          <div className={cn("flex items-center text-xs", getTrendColor())}>
-            {TrendIcon && <TrendIcon className="h-3 w-3 mr-1" />}
-            <span>{change > 0 ? '+' : ''}{change}%</span>
-            {changeLabel && <span className="ml-1 text-muted-foreground">{changeLabel}</span>}
+    <Card className={cn('relative overflow-hidden', className)}>
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            <div className="mt-2 flex items-baseline gap-2">
+              <p className="text-2xl font-bold">{value}</p>
+              {trendValue && trend && (
+                <span className={cn(
+                  'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
+                  trendColors[trend]
+                )}>
+                  {trend === 'up' ? '↗' : trend === 'down' ? '↘' : '→'} {trendValue}
+                </span>
+              )}
+            </div>
+            {subtitle && (
+              <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+            )}
           </div>
-        )}
-      </div>
+          
+          {progress !== undefined ? (
+            <ProgressRing progress={progress} size="sm" color={color}>
+              <span className="text-xs font-semibold">{progress}%</span>
+            </ProgressRing>
+          ) : Icon ? (
+            <div className="flex-shrink-0">
+              <Icon className="h-8 w-8 text-muted-foreground" />
+            </div>
+          ) : null}
+        </div>
+      </CardContent>
     </Card>
   );
 };
