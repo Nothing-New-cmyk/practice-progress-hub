@@ -2,7 +2,6 @@ import { useEffect, useMemo } from 'react';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { AppLayout } from '@/components/layouts/AppLayout';
 import { SectionHeader } from '@/components/ui/section-header';
-import { StatsCard } from '@/components/ui/stats-card';
 import { StreakCounter } from '@/components/ui/streak-counter';
 import { GlassmorphicCard } from '@/components/ui/glassmorphic-card';
 import { SummaryCard } from '@/components/ui/summary-card';
@@ -36,7 +35,7 @@ import {
   Activity,
   Calendar,
   FileText,
-  Zap
+  Zap,
 } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
@@ -44,7 +43,7 @@ export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
 
-  // Redirect or show loading/error states
+  // 1️⃣ Loading & Error Handling
   if (loading) {
     return (
       <AppLayout>
@@ -82,7 +81,7 @@ export const Dashboard: React.FC = () => {
     );
   }
 
-  // Memoize generated chart data
+  // 2️⃣ Memoize Sparkline Data
   const problemsSparklineData = useMemo(
     () =>
       Array.from({ length: 7 }, () => ({
@@ -99,8 +98,8 @@ export const Dashboard: React.FC = () => {
     [summary.hoursThisWeek]
   );
 
+  // 3️⃣ Generate 1‐Year Heatmap Data (placeholder; replace with real data)
   const heatmapData = useMemo(() => {
-    // Ideally, fetch actual heatmap data from the backend; this is a placeholder
     const today = new Date();
     return Array.from({ length: 365 }, (_, idx) => {
       const d = new Date(today);
@@ -131,7 +130,7 @@ export const Dashboard: React.FC = () => {
           />
         </motion.div>
 
-        {/* Top Section: Summary Cards */}
+        {/* 1️⃣ Top Section – Summary Cards */}
         <motion.div
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
           initial={shouldReduceMotion ? {} : { opacity: 0, y: 20 }}
@@ -144,7 +143,7 @@ export const Dashboard: React.FC = () => {
             onClick={() => navigate('/problems')}
             role="button"
             tabIndex={0}
-            className="p-6 hover:shadow-xl transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="p-6 hover:shadow-xl transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800"
             aria-label="View problems this week details"
           >
             <div className="flex items-center justify-between">
@@ -169,7 +168,7 @@ export const Dashboard: React.FC = () => {
           </GlassmorphicCard>
 
           {/* Hours This Week */}
-          <GlassmorphicCard className="p-6 hover:shadow-xl transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <GlassmorphicCard className="p-6 hover:shadow-xl transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Hours This Week</p>
@@ -211,7 +210,7 @@ export const Dashboard: React.FC = () => {
             onClick={() => navigate('/badges')}
             role="button"
             tabIndex={0}
-            className="p-6 hover:shadow-xl transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="p-6 hover:shadow-xl transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800"
             aria-label="View all earned badges"
           >
             <div className="space-y-4">
@@ -237,9 +236,9 @@ export const Dashboard: React.FC = () => {
           </GlassmorphicCard>
         </motion.div>
 
-        {/* Middle Section: Analytics */}
+        {/* 2️⃣ Middle Section – Analytics */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Heatmap Calendar */}
+          {/* Activity Heatmap */}
           <motion.section
             initial={shouldReduceMotion ? {} : { opacity: 0, x: -20 }}
             animate={shouldReduceMotion ? {} : { opacity: 1, x: 0 }}
@@ -251,13 +250,10 @@ export const Dashboard: React.FC = () => {
             <h2 id="heatmap-heading" className="sr-only">
               Activity Heatmap
             </h2>
-            <ActivityHeatmap
-              data={heatmapData}
-              aria-label="Calendar heatmap of problems solved per day over last 365 days"
-            />
+            <ActivityHeatmap data={heatmapData} />
           </motion.section>
 
-          {/* Charts Stack */}
+          {/* Difficulty & Topic Progress */}
           <motion.div
             className="space-y-6"
             initial={shouldReduceMotion ? {} : { opacity: 0, x: 20 }}
@@ -291,7 +287,7 @@ export const Dashboard: React.FC = () => {
           </motion.div>
         </div>
 
-        {/* Additional Analytics Row */}
+        {/* 3️⃣ Additional Analytics Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Personal Bests */}
           <EnhancedCard
@@ -363,7 +359,12 @@ export const Dashboard: React.FC = () => {
                 25:00
               </div>
               <div className="flex justify-center space-x-2">
-                <Button size="sm" variant="outline" className="justify-center" aria-label="Start timer">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="justify-center"
+                  aria-label="Start timer"
+                >
                   <Play className="h-4 w-4 mr-1" />
                   Start
                 </Button>
@@ -375,7 +376,7 @@ export const Dashboard: React.FC = () => {
           </EnhancedCard>
         </div>
 
-        {/* Bottom Section: Goals & Reminders */}
+        {/* 4️⃣ Bottom Section – Goals & Reminders */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Weekly Goals Table */}
           <motion.div
@@ -398,7 +399,11 @@ export const Dashboard: React.FC = () => {
                 {summary.weeklyGoals.map((goal) => {
                   const progressPercent = (goal.current / goal.target) * 100;
                   const StatusIcon =
-                    goal.status === 'completed' ? CheckCircle : goal.status === 'missed' ? XCircle : Clock;
+                    goal.status === 'completed'
+                      ? CheckCircle
+                      : goal.status === 'missed'
+                      ? XCircle
+                      : Clock;
                   const statusColor =
                     goal.status === 'completed'
                       ? 'text-green-500 dark:text-green-400'
@@ -423,7 +428,9 @@ export const Dashboard: React.FC = () => {
                       <div className="flex items-center space-x-3">
                         <StatusIcon className={`h-5 w-5 ${statusColor}`} aria-hidden="true" />
                         <div>
-                          <p className="font-medium text-sm text-gray-800 dark:text-gray-200">{goal.goal}</p>
+                          <p className="font-medium text-sm text-gray-800 dark:text-gray-200">
+                            {goal.goal}
+                          </p>
                           <div className="flex items-center space-x-2 mt-1">
                             <div
                               role="progressbar"
@@ -497,14 +504,20 @@ export const Dashboard: React.FC = () => {
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-medium text-sm text-gray-800 dark:text-gray-200">{reminder.type}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">{reminder.time}</p>
+                          <p className="font-medium text-sm text-gray-800 dark:text-gray-200">
+                            {reminder.type}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {reminder.time}
+                          </p>
                         </div>
                         <div className="flex space-x-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {/* call API to send now */}}
+                            onClick={() => {
+                              /* call API to send now */
+                            }}
                             aria-label={`Send reminder ${reminder.type} now`}
                           >
                             Send Now
@@ -512,7 +525,9 @@ export const Dashboard: React.FC = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => {/* call API to dismiss */}}
+                            onClick={() => {
+                              /* call API to dismiss */
+                            }}
                             aria-label={`Dismiss reminder ${reminder.type}`}
                           >
                             Dismiss
@@ -537,7 +552,7 @@ export const Dashboard: React.FC = () => {
           </motion.div>
         </div>
 
-        {/* Additional Features Row */}
+        {/* 5️⃣ Additional Features Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Achievements */}
           <motion.div
