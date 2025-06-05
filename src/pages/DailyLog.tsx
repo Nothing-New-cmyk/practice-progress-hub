@@ -10,15 +10,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { LoadingSkeleton } from '@/components/ui/loading-skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useDailyLogs } from '@/hooks/useDailyLogs';
-import { PlusCircle, Calendar, Clock, BookOpen, Trash2, Edit, Eye } from 'lucide-react';
+import { PlusCircle, Calendar, Clock, BookOpen, Trash2, Edit, Eye, Filter, Search } from 'lucide-react';
 import { format } from 'date-fns';
 
 export const DailyLog = () => {
   const { toast } = useToast();
   const { logs, loading, creating, createLog, deleteLog } = useDailyLogs();
   const [showForm, setShowForm] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterPlatform, setFilterPlatform] = useState('all');
+  const [filterDifficulty, setFilterDifficulty] = useState('all');
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     topic: '',
@@ -85,6 +89,28 @@ export const DailyLog = () => {
     }
   };
 
+  // Filter logs based on search and filters
+  const filteredLogs = logs.filter(log => {
+    const matchesSearch = log.topic.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         log.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         log.platform.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesPlatform = filterPlatform === 'all' || log.platform === filterPlatform;
+    const matchesDifficulty = filterDifficulty === 'all' || log.difficulty === filterDifficulty;
+    
+    return matchesSearch && matchesPlatform && matchesDifficulty;
+  });
+
+  // Get unique platforms and difficulties for filters
+  const uniquePlatforms = [...new Set(logs.map(log => log.platform))];
+  const uniqueDifficulties = [...new Set(logs.map(log => log.difficulty))];
+
+  // Calculate summary stats
+  const totalProblems = logs.reduce((sum, log) => sum + log.problems_solved, 0);
+  const totalTime = logs.reduce((sum, log) => sum + log.time_spent_minutes, 0);
+  const totalSessions = logs.length;
+  const avgProblemsPerSession = totalSessions > 0 ? (totalProblems / totalSessions).toFixed(1) : '0';
+
   return (
     <AppLayout>
       <div className="p-4 md:p-6 space-y-8 max-w-6xl mx-auto">
@@ -101,6 +127,34 @@ export const DailyLog = () => {
             <PlusCircle className="h-4 w-4" />
             {showForm ? 'Cancel' : 'New Entry'}
           </Button>
+        </div>
+
+        {/* Summary Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-blue-600">{totalProblems}</div>
+              <div className="text-sm text-muted-foreground">Total Problems</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-green-600">{Math.floor(totalTime / 60)}h {totalTime % 60}m</div>
+              <div className="text-sm text-muted-foreground">Total Time</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-purple-600">{totalSessions}</div>
+              <div className="text-sm text-muted-foreground">Sessions</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold text-orange-600">{avgProblemsPerSession}</div>
+              <div className="text-sm text-muted-foreground">Avg Problems</div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* New Entry Form */}
@@ -163,6 +217,9 @@ export const DailyLog = () => {
                         <SelectItem value="hackerrank">HackerRank</SelectItem>
                         <SelectItem value="codechef">CodeChef</SelectItem>
                         <SelectItem value="atcoder">AtCoder</SelectItem>
+                        <SelectItem value="hackerearth">HackerEarth</SelectItem>
+                        <SelectItem value="geeksforgeeks">GeeksforGeeks</SelectItem>
+                        <SelectItem value="interviewbit">InterviewBit</SelectItem>
                         <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>
@@ -255,20 +312,97 @@ export const DailyLog = () => {
           </Card>
         )}
 
+        {/* Filters and Search */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Filter & Search
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <Label htmlFor="search">Search</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="search"
+                    placeholder="Search topics, notes..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="filterPlatform">Platform</Label>
+                <Select value={filterPlatform} onValueChange={setFilterPlatform}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Platforms</SelectItem>
+                    {uniquePlatforms.map(platform => (
+                      <SelectItem key={platform} value={platform} className="capitalize">
+                        {platform}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="filterDifficulty">Difficulty</Label>
+                <Select value={filterDifficulty} onValueChange={setFilterDifficulty}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Difficulties</SelectItem>
+                    {uniqueDifficulties.map(difficulty => (
+                      <SelectItem key={difficulty} value={difficulty} className="capitalize">
+                        {difficulty}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setSearchTerm('');
+                    setFilterPlatform('all');
+                    setFilterDifficulty('all');
+                  }}
+                  className="w-full"
+                >
+                  Clear Filters
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Recent Logs */}
         <Card>
           <CardHeader>
-            <CardTitle>Recent Practice Sessions</CardTitle>
+            <CardTitle>Practice Sessions ({filteredLogs.length})</CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
               <div className="flex items-center justify-center h-32">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
-            ) : logs.length === 0 ? (
+            ) : filteredLogs.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No practice sessions logged yet. Start by adding your first entry!</p>
+                <p>
+                  {logs.length === 0 
+                    ? "No practice sessions logged yet. Start by adding your first entry!"
+                    : "No sessions match your current filters. Try adjusting the search criteria."
+                  }
+                </p>
               </div>
             ) : (
               <Table>
@@ -284,14 +418,14 @@ export const DailyLog = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {logs.map((log) => (
+                  {filteredLogs.map((log) => (
                     <TableRow key={log.id}>
                       <TableCell>
                         {format(new Date(log.date), 'MMM d, yyyy')}
                       </TableCell>
                       <TableCell className="font-medium">{log.topic}</TableCell>
                       <TableCell>
-                        <Badge variant="outline">{log.platform}</Badge>
+                        <Badge variant="outline" className="capitalize">{log.platform}</Badge>
                       </TableCell>
                       <TableCell>
                         <Badge className={getDifficultyColor(log.difficulty)}>
