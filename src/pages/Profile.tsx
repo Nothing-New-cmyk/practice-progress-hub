@@ -172,9 +172,9 @@ export const Profile = () => {
   }
 
   // Calculate hours and minutes for display - ensure we're working with numbers
-  const totalTimeMinutes = Number(profile.total_time) || 0;
-  const totalHours = Math.floor(totalTimeMinutes / 60);
-  const totalMinutes = totalTimeMinutes % 60;
+  const totalTimeNumber = Number(profile.total_time) || 0;
+  const totalHours = Math.floor(totalTimeNumber / 60);
+  const totalMinutes = totalTimeNumber % 60;
 
   return (
     <AppLayout>
