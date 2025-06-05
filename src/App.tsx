@@ -6,8 +6,8 @@ import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { AuthProvider } from '@/hooks/useAuth';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 
-// Pages
-import { Index } from '@/pages/Index';
+// Pages - using default imports
+import Index from '@/pages/Index';
 import { Login } from '@/pages/Login';
 import { SignUp } from '@/pages/SignUp';
 import { ForgotPassword } from '@/pages/ForgotPassword';
@@ -18,7 +18,7 @@ import { WeeklyGoals } from '@/pages/WeeklyGoals';
 import { Analytics } from '@/pages/Analytics';
 import { Profile } from '@/pages/Profile';
 import { Settings } from '@/pages/Settings';
-import { NotFound } from '@/pages/NotFound';
+import NotFound from '@/pages/NotFound';
 
 const queryClient = new QueryClient();
 
