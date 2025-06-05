@@ -257,7 +257,11 @@ export const Dashboard: React.FC = () => {
                 Difficulty Mastery Chart
               </h2>
               <DifficultyChart
-                data={summary.difficultyData}
+                data={summary.difficultyData.map(item => ({
+                  difficulty: item.name,
+                  count: item.value,
+                  color: item.color
+                }))}
                 aria-label="Bar chart showing count of Easy, Medium, Hard problems solved"
               />
             </section>
@@ -269,7 +273,7 @@ export const Dashboard: React.FC = () => {
               <h2 id="topic-progress-heading" className="sr-only">
                 Topic Progress
               </h2>
-              <TopicProgress data={summary.topicProgress} />
+              <TopicProgress topics={summary.topicProgress} />
             </section>
           </motion.div>
         </div>
