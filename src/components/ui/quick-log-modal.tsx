@@ -1,13 +1,13 @@
 
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Clock, Target, Calendar } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 interface QuickLogModalProps {
   open: boolean;
@@ -15,120 +15,163 @@ interface QuickLogModalProps {
 }
 
 export const QuickLogModal: React.FC<QuickLogModalProps> = ({ open, onOpenChange }) => {
+  const [problemName, setProblemName] = useState('');
+  const [difficulty, setDifficulty] = useState('');
+  const [timeSpent, setTimeSpent] = useState('');
+  const [platform, setPlatform] = useState('');
+  const [notes, setNotes] = useState('');
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  const [formData, setFormData] = useState({
-    problemsSolved: '',
-    timeSpent: '',
-    topic: '',
-    notes: ''
-  });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // TODO: Implement actual data submission to backend
-    console.log('Quick log entry:', formData);
-    
-    toast({
-      title: "Daily log saved",
-      description: "Your practice session has been logged successfully.",
-    });
+    if (!problemName || !difficulty || !timeSpent || !platform) {
+      toast({
+        title: "Missing fields",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
 
-    // Reset form and close modal
-    setFormData({
-      problemsSolved: '',
-      timeSpent: '',
-      topic: '',
-      notes: ''
-    });
-    onOpenChange(false);
+    setLoading(true);
+    
+    try {
+      // TODO: Replace with actual API call
+      console.log('Quick log entry:', {
+        problemName,
+        difficulty,
+        timeSpent,
+        platform,
+        notes,
+        date: new Date().toISOString().split('T')[0]
+      });
+
+      toast({
+        title: "Problem logged!",
+        description: `${problemName} has been added to your daily log.`
+      });
+
+      // Reset form
+      setProblemName('');
+      setDifficulty('');
+      setTimeSpent('');
+      setPlatform('');
+      setNotes('');
+      onOpenChange(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to log problem. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleClose = () => {
+    if (!loading) {
+      onOpenChange(false);
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5" />
-            Quick Log Entry
+            <Plus className="h-5 w-5" />
+            Quick Log Problem
           </DialogTitle>
+          <DialogDescription>
+            Quickly log a problem you just solved. This will be added to today's daily log.
+          </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="problem-name">Problem Name *</Label>
+            <Input
+              id="problem-name"
+              placeholder="e.g., Two Sum, Binary Tree Inorder Traversal"
+              value={problemName}
+              onChange={(e) => setProblemName(e.target.value)}
+              disabled={loading}
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="problems" className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                Problems Solved
-              </Label>
-              <Input
-                id="problems"
-                type="number"
-                min="0"
-                placeholder="5"
-                value={formData.problemsSolved}
-                onChange={(e) => handleInputChange('problemsSolved', e.target.value)}
-                required
-              />
+            <div className="space-y-2">
+              <Label htmlFor="difficulty">Difficulty *</Label>
+              <Select value={difficulty} onValueChange={setDifficulty} disabled={loading}>
+                <SelectTrigger id="difficulty">
+                  <SelectValue placeholder="Select difficulty" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Easy">Easy</SelectItem>
+                  <SelectItem value="Medium">Medium</SelectItem>
+                  <SelectItem value="Hard">Hard</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div>
-              <Label htmlFor="time" className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                Time (minutes)
-              </Label>
+
+            <div className="space-y-2">
+              <Label htmlFor="time-spent">Time Spent (min) *</Label>
               <Input
-                id="time"
+                id="time-spent"
                 type="number"
-                min="0"
-                placeholder="120"
-                value={formData.timeSpent}
-                onChange={(e) => handleInputChange('timeSpent', e.target.value)}
-                required
+                placeholder="30"
+                value={timeSpent}
+                onChange={(e) => setTimeSpent(e.target.value)}
+                disabled={loading}
+                min="1"
               />
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="topic">Main Topic</Label>
-            <Select value={formData.topic} onValueChange={(value) => handleInputChange('topic', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select topic" />
+          <div className="space-y-2">
+            <Label htmlFor="platform">Platform *</Label>
+            <Select value={platform} onValueChange={setPlatform} disabled={loading}>
+              <SelectTrigger id="platform">
+                <SelectValue placeholder="Select platform" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="arrays">Arrays</SelectItem>
-                <SelectItem value="strings">Strings</SelectItem>
-                <SelectItem value="linked-lists">Linked Lists</SelectItem>
-                <SelectItem value="trees">Trees</SelectItem>
-                <SelectItem value="graphs">Graphs</SelectItem>
-                <SelectItem value="dynamic-programming">Dynamic Programming</SelectItem>
-                <SelectItem value="sorting">Sorting</SelectItem>
-                <SelectItem value="searching">Searching</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+                <SelectItem value="LeetCode">LeetCode</SelectItem>
+                <SelectItem value="HackerRank">HackerRank</SelectItem>
+                <SelectItem value="Codeforces">Codeforces</SelectItem>
+                <SelectItem value="AtCoder">AtCoder</SelectItem>
+                <SelectItem value="CodeChef">CodeChef</SelectItem>
+                <SelectItem value="GeeksforGeeks">GeeksforGeeks</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="notes">Notes (optional)</Label>
             <Textarea
               id="notes"
-              placeholder="What did you learn? Any challenges faced?"
-              value={formData.notes}
-              onChange={(e) => handleInputChange('notes', e.target.value)}
+              placeholder="Any additional notes about your approach, learnings, or struggles..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              disabled={loading}
               rows={3}
             />
           </div>
 
-          <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleClose}
+              disabled={loading}
+            >
               Cancel
             </Button>
-            <Button type="submit">
-              Save Log Entry
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Logging...' : 'Log Problem'}
             </Button>
           </div>
         </form>

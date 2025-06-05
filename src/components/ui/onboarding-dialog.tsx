@@ -1,20 +1,10 @@
 
-import React, { useEffect, useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import React from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { UserPreferencesService } from '@/services/userPreferences';
-import { 
-  CheckCircle, 
-  Target, 
-  Calendar, 
-  BarChart3, 
-  BookOpen,
-  Trophy,
-  ArrowRight,
-  Sparkles
-} from 'lucide-react';
+import { BarChart3, Calendar, Target, TrendingUp, Clock, Trophy } from 'lucide-react';
 
 interface OnboardingDialogProps {
   open: boolean;
@@ -22,205 +12,143 @@ interface OnboardingDialogProps {
 }
 
 export const OnboardingDialog: React.FC<OnboardingDialogProps> = ({ open, onOpenChange }) => {
-  const [currentStep, setCurrentStep] = useState(0);
+  const handleComplete = async () => {
+    try {
+      await UserPreferencesService.markOnboardingComplete();
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error marking onboarding complete:', error);
+      onOpenChange(false);
+    }
+  };
 
-  const steps = [
+  const features = [
     {
-      title: "Welcome to DSA Tracker! 🎉",
-      icon: Sparkles,
-      content: (
-        <div className="space-y-4">
-          <p className="text-muted-foreground">
-            Your personal companion for mastering Data Structures and Algorithms. 
-            Let's take a quick tour of the main features to get you started.
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <Trophy className="h-5 w-5 text-blue-600" />
-              <span className="text-sm font-medium">Track Progress</span>
-            </div>
-            <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <Target className="h-5 w-5 text-green-600" />
-              <span className="text-sm font-medium">Set Goals</span>
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      title: "Dashboard - Your Command Center",
       icon: BarChart3,
-      content: (
-        <div className="space-y-4">
-          <p className="text-muted-foreground">
-            The dashboard gives you a complete overview of your coding journey:
-          </p>
-          <ul className="space-y-2">
-            <li className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <span className="text-sm">Weekly progress and streak tracking</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <span className="text-sm">Interactive heatmap calendar</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <span className="text-sm">Topic mastery breakdown</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <span className="text-sm">Achievement badges and goals</span>
-            </li>
-          </ul>
-        </div>
-      )
+      title: 'Dashboard',
+      description: 'Track your progress with comprehensive analytics and visual charts'
     },
     {
-      title: "Daily & Contest Logs",
       icon: Calendar,
-      content: (
-        <div className="space-y-4">
-          <p className="text-muted-foreground">
-            Keep track of your daily practice and contest performances:
-          </p>
-          <div className="grid gap-3">
-            <Card className="p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <BookOpen className="h-4 w-4 text-blue-600" />
-                <span className="font-medium text-sm">Daily Log</span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Record problems solved, time spent, and topics covered each day.
-              </p>
-            </Card>
-            <Card className="p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Trophy className="h-4 w-4 text-orange-600" />
-                <span className="font-medium text-sm">Contest Log</span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Track contest rankings, problems solved, and performance insights.
-              </p>
-            </Card>
-          </div>
-        </div>
-      )
+      title: 'Daily Logs',
+      description: 'Log your daily coding practice, problems solved, and time spent'
     },
     {
-      title: "Goals & Analytics",
       icon: Target,
-      content: (
-        <div className="space-y-4">
-          <p className="text-muted-foreground">
-            Set weekly goals and analyze your progress with detailed insights:
-          </p>
-          <ul className="space-y-2">
-            <li className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <span className="text-sm">Set and track weekly coding goals</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <span className="text-sm">View performance analytics and trends</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <span className="text-sm">Identify strengths and improvement areas</span>
-            </li>
-          </ul>
-          <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg">
-            <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-              💡 Pro Tip: Use the Quick Log button in the navbar for fast daily entries!
-            </p>
-          </div>
-        </div>
-      )
+      title: 'Weekly Goals',
+      description: 'Set and track weekly goals to stay motivated and consistent'
+    },
+    {
+      icon: TrendingUp,
+      title: 'Analytics',
+      description: 'Analyze your performance trends and identify areas for improvement'
     }
   ];
 
-  const currentStepData = steps[currentStep];
-  const isLastStep = currentStep === steps.length - 1;
-
-  const handleNext = () => {
-    if (isLastStep) {
-      handleFinish();
-    } else {
-      setCurrentStep(currentStep + 1);
+  const quickTips = [
+    {
+      icon: Clock,
+      tip: 'Use the Quick Log button in the navbar to quickly log problems you solve'
+    },
+    {
+      icon: Trophy,
+      tip: 'Check your dashboard daily to see your progress and maintain streaks'
+    },
+    {
+      icon: Target,
+      tip: 'Set realistic weekly goals to build consistent coding habits'
     }
-  };
-
-  const handleFinish = async () => {
-    try {
-      await UserPreferencesService.setPreferences({ hasSeenOnboarding: true });
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Error saving onboarding preference:', error);
-      onOpenChange(false);
-    }
-  };
-
-  const handleSkip = async () => {
-    await handleFinish();
-  };
+  ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2">
-              <currentStepData.icon className="h-5 w-5 text-primary" />
-              {currentStepData.title}
-            </DialogTitle>
-            <Badge variant="secondary" className="text-xs">
-              {currentStep + 1} of {steps.length}
-            </Badge>
-          </div>
+          <DialogTitle className="flex items-center gap-2 text-xl">
+            <BarChart3 className="h-6 w-6 text-primary" />
+            Welcome to DSA Tracker!
+          </DialogTitle>
+          <DialogDescription className="text-base">
+            Your personal companion for tracking Data Structures and Algorithms progress.
+            Let's get you started with a quick overview of the main features.
+          </DialogDescription>
         </DialogHeader>
-        
-        <div className="py-4">
-          {currentStepData.content}
-        </div>
 
-        {/* Progress Indicator */}
-        <div className="flex space-x-2 mb-4">
-          {steps.map((_, index) => (
-            <div
-              key={index}
-              className={`h-2 flex-1 rounded-full transition-colors ${
-                index <= currentStep 
-                  ? 'bg-primary' 
-                  : 'bg-muted'
-              }`}
-            />
-          ))}
-        </div>
-
-        <div className="flex justify-between">
-          <Button variant="ghost" onClick={handleSkip}>
-            Skip Tour
-          </Button>
-          <div className="flex gap-2">
-            {currentStep > 0 && (
-              <Button variant="outline" onClick={() => setCurrentStep(currentStep - 1)}>
-                Previous
-              </Button>
-            )}
-            <Button onClick={handleNext} className="flex items-center gap-2">
-              {isLastStep ? (
-                <>
-                  Get Started
-                  <Sparkles className="h-4 w-4" />
-                </>
-              ) : (
-                <>
-                  Next
-                  <ArrowRight className="h-4 w-4" />
-                </>
-              )}
-            </Button>
+        <div className="space-y-6 py-4">
+          {/* Main Features */}
+          <div>
+            <h3 className="text-lg font-semibold mb-3">Main Features</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {features.map((feature, index) => {
+                const IconComponent = feature.icon;
+                return (
+                  <Card key={index} className="border-2">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 mt-1">
+                          <IconComponent className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-sm">{feature.title}</h4>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {feature.description}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           </div>
+
+          {/* Quick Tips */}
+          <div>
+            <h3 className="text-lg font-semibold mb-3">Quick Tips</h3>
+            <div className="space-y-2">
+              {quickTips.map((tip, index) => {
+                const IconComponent = tip.icon;
+                return (
+                  <div key={index} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+                    <IconComponent className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-muted-foreground">{tip.tip}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Getting Started Steps */}
+          <div>
+            <h3 className="text-lg font-semibold mb-3">Getting Started</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">1</span>
+                <span>Visit your <strong>Dashboard</strong> to see your current progress</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">2</span>
+                <span>Start logging your practice in <strong>Daily Log</strong></span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">3</span>
+                <span>Set your first goal in <strong>Weekly Goals</strong></span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">4</span>
+                <span>Track your improvement in <strong>Analytics</strong></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3 pt-4 border-t">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Skip for now
+          </Button>
+          <Button onClick={handleComplete}>
+            Get Started
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

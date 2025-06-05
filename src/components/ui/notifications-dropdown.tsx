@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,90 +10,65 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Check, Clock, Trophy, Target } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Bell, Clock, Trophy, Target, CheckCircle } from 'lucide-react';
 
-interface Notification {
-  id: string;
-  type: 'reminder' | 'achievement' | 'goal' | 'contest';
-  title: string;
-  message: string;
-  time: string;
-  read: boolean;
-  priority: 'low' | 'medium' | 'high';
-}
+const mockNotifications = [
+  {
+    id: '1',
+    type: 'reminder',
+    title: 'Daily Practice Reminder',
+    message: 'Time for your daily coding practice!',
+    time: '5 minutes ago',
+    read: false,
+    icon: Clock,
+  },
+  {
+    id: '2',
+    type: 'achievement',
+    title: 'New Badge Earned!',
+    message: 'You earned the "Problem Solver" badge',
+    time: '2 hours ago',
+    read: false,
+    icon: Trophy,
+  },
+  {
+    id: '3',
+    type: 'goal',
+    title: 'Weekly Goal Progress',
+    message: 'You\'re 80% towards your weekly goal',
+    time: '1 day ago',
+    read: true,
+    icon: Target,
+  },
+];
 
 export const NotificationsDropdown: React.FC = () => {
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      type: 'reminder',
-      title: 'Daily Practice Reminder',
-      message: 'Time for your daily coding practice!',
-      time: '2 hours ago',
-      read: false,
-      priority: 'high'
-    },
-    {
-      id: '2',
-      type: 'achievement',
-      title: 'New Badge Earned',
-      message: 'You earned the "Problem Solver" badge!',
-      time: '1 day ago',
-      read: false,
-      priority: 'medium'
-    },
-    {
-      id: '3',
-      type: 'goal',
-      title: 'Weekly Goal Update',
-      message: 'You completed 75% of your weekly goal',
-      time: '2 days ago',
-      read: true,
-      priority: 'low'
-    }
-  ]);
+  const unreadCount = mockNotifications.filter(n => !n.read).length;
 
-  const unreadCount = notifications.filter(n => !n.read).length;
-
-  const getIcon = (type: Notification['type']) => {
-    switch (type) {
-      case 'reminder': return Clock;
-      case 'achievement': return Trophy;
-      case 'goal': return Target;
-      case 'contest': return Trophy;
-      default: return Bell;
-    }
+  const handleMarkAllRead = () => {
+    console.log('Mark all notifications as read');
+    // TODO: Implement mark all as read functionality
   };
 
-  const getPriorityColor = (priority: Notification['priority']) => {
-    switch (priority) {
-      case 'high': return 'text-red-600';
-      case 'medium': return 'text-yellow-600';
-      case 'low': return 'text-blue-600';
-      default: return 'text-gray-600';
-    }
-  };
-
-  const markAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
-    );
-  };
-
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  const handleNotificationClick = (notificationId: string) => {
+    console.log('Notification clicked:', notificationId);
+    // TODO: Implement notification click handling
   };
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative h-9 w-9" aria-label="Notifications">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative h-9 w-9"
+          aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
+        >
           <Bell className="h-4 w-4" />
           {unreadCount > 0 && (
             <Badge 
-              className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs bg-red-500 hover:bg-red-500"
-              aria-label={`${unreadCount} unread notifications`}
+              variant="destructive" 
+              className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
             >
               {unreadCount}
             </Badge>
@@ -107,8 +82,8 @@ export const NotificationsDropdown: React.FC = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={markAllAsRead}
-              className="h-6 text-xs"
+              onClick={handleMarkAllRead}
+              className="h-auto p-1 text-xs"
             >
               Mark all read
             </Button>
@@ -116,42 +91,45 @@ export const NotificationsDropdown: React.FC = () => {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         
-        {notifications.length === 0 ? (
-          <div className="p-4 text-center text-sm text-muted-foreground">
+        {mockNotifications.length === 0 ? (
+          <DropdownMenuItem disabled className="text-center text-muted-foreground">
             No notifications
-          </div>
+          </DropdownMenuItem>
         ) : (
-          <div className="max-h-96 overflow-y-auto">
-            {notifications.map((notification) => {
-              const Icon = getIcon(notification.type);
-              return (
-                <DropdownMenuItem
-                  key={notification.id}
-                  className={cn(
-                    "flex items-start gap-3 p-3 cursor-pointer",
-                    !notification.read && "bg-blue-50/50 dark:bg-blue-950/20"
-                  )}
-                  onClick={() => markAsRead(notification.id)}
-                >
-                  <Icon className={cn("h-4 w-4 mt-0.5", getPriorityColor(notification.priority))} />
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium">{notification.title}</p>
-                      {!notification.read && (
-                        <div className="h-2 w-2 bg-blue-500 rounded-full" />
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">{notification.message}</p>
-                    <p className="text-xs text-muted-foreground">{notification.time}</p>
+          mockNotifications.map((notification) => {
+            const IconComponent = notification.icon;
+            return (
+              <DropdownMenuItem
+                key={notification.id}
+                className="flex items-start gap-3 p-3 cursor-pointer"
+                onClick={() => handleNotificationClick(notification.id)}
+              >
+                <div className="flex-shrink-0 mt-1">
+                  <IconComponent className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium leading-none">
+                      {notification.title}
+                    </p>
+                    {!notification.read && (
+                      <div className="h-2 w-2 bg-blue-500 rounded-full flex-shrink-0" />
+                    )}
                   </div>
-                </DropdownMenuItem>
-              );
-            })}
-          </div>
+                  <p className="text-xs text-muted-foreground line-clamp-2">
+                    {notification.message}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {notification.time}
+                  </p>
+                </div>
+              </DropdownMenuItem>
+            );
+          })
         )}
         
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="justify-center text-sm text-blue-600 hover:text-blue-700">
+        <DropdownMenuItem className="text-center text-sm text-muted-foreground">
           View all notifications
         </DropdownMenuItem>
       </DropdownMenuContent>
