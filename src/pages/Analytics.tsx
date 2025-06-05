@@ -32,6 +32,14 @@ export const Analytics = () => {
     { difficulty: 'Hard', count: 18, color: '#EF4444' }
   ];
 
+  const topicsData = [
+    { topic: 'Arrays', solved: 45, total: 60, percentage: 75 },
+    { topic: 'Dynamic Programming', solved: 23, total: 50, percentage: 46 },
+    { topic: 'Trees', solved: 32, total: 40, percentage: 80 },
+    { topic: 'Graphs', solved: 18, total: 35, percentage: 51 },
+    { topic: 'Strings', solved: 28, total: 35, percentage: 80 },
+  ];
+
   const heatmapData = generateHeatmapData();
 
   return (
@@ -53,7 +61,7 @@ export const Analytics = () => {
           <DifficultyChart data={difficultyData} />
 
           {/* Topic Progress */}
-          <TopicProgress />
+          <TopicProgress topics={topicsData} />
         </div>
 
         {/* Additional Analytics Cards */}
