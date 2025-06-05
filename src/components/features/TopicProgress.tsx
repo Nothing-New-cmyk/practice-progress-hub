@@ -9,34 +9,24 @@ interface TopicData {
   topic: string;
   solved: number;
   total: number;
-  difficulty: 'easy' | 'medium' | 'hard';
+  percentage?: number;
 }
 
-const topics: TopicData[] = [
-  { topic: 'Arrays', solved: 45, total: 60, difficulty: 'easy' },
-  { topic: 'Dynamic Programming', solved: 23, total: 50, difficulty: 'hard' },
-  { topic: 'Trees', solved: 32, total: 40, difficulty: 'medium' },
-  { topic: 'Graphs', solved: 18, total: 35, difficulty: 'hard' },
-  { topic: 'Strings', solved: 28, total: 35, difficulty: 'medium' },
-];
+interface TopicProgressProps {
+  topics: TopicData[];
+}
 
-export const TopicProgress: React.FC = () => {
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'easy': return 'bg-green-500';
-      case 'medium': return 'bg-yellow-500';
-      case 'hard': return 'bg-red-500';
-      default: return 'bg-gray-500';
-    }
+export const TopicProgress: React.FC<TopicProgressProps> = ({ topics }) => {
+  const getDifficultyColor = (percentage: number) => {
+    if (percentage >= 80) return 'bg-green-500';
+    if (percentage >= 60) return 'bg-yellow-500';
+    return 'bg-red-500';
   };
 
-  const getDifficultyVariant = (difficulty: string) => {
-    switch (difficulty) {
-      case 'easy': return 'default' as const;
-      case 'medium': return 'secondary' as const;
-      case 'hard': return 'destructive' as const;
-      default: return 'outline' as const;
-    }
+  const getDifficultyVariant = (percentage: number) => {
+    if (percentage >= 80) return 'default' as const;
+    if (percentage >= 60) return 'secondary' as const;
+    return 'destructive' as const;
   };
 
   return (
@@ -50,14 +40,16 @@ export const TopicProgress: React.FC = () => {
       <CardContent>
         <div className="space-y-4">
           {topics.map((topic) => {
-            const percentage = (topic.solved / topic.total) * 100;
+            const percentage = topic.percentage || (topic.solved / topic.total) * 100;
+            const difficultyLevel = percentage >= 80 ? 'mastered' : percentage >= 60 ? 'good' : 'learning';
+            
             return (
               <div key={topic.topic} className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-sm">{topic.topic}</span>
-                    <Badge variant={getDifficultyVariant(topic.difficulty)} className="text-xs">
-                      {topic.difficulty}
+                    <Badge variant={getDifficultyVariant(percentage)} className="text-xs">
+                      {difficultyLevel}
                     </Badge>
                   </div>
                   <span className="text-sm text-muted-foreground">

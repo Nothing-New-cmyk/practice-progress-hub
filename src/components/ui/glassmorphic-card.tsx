@@ -10,7 +10,7 @@ interface GlassmorphicCardProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export const GlassmorphicCard = React.forwardRef<HTMLDivElement, GlassmorphicCardProps>(
-  ({ className, variant = 'default', children, as: Component = 'div', ...props }, ref) => {
+  ({ className, variant = 'default', children, as: Component = Card, ...props }, ref) => {
     const variants = {
       default: 'bg-white/10 backdrop-blur-md border-white/20',
       strong: 'bg-white/20 backdrop-blur-lg border-white/30',
@@ -18,9 +18,8 @@ export const GlassmorphicCard = React.forwardRef<HTMLDivElement, GlassmorphicCar
     }
 
     return (
-      <Card
+      <Component
         ref={ref}
-        as={Component}
         className={cn(
           'transition-all duration-300 hover:bg-white/15 hover:scale-[1.02]',
           'dark:bg-gray-900/20 dark:backdrop-blur-md dark:border-gray-700/30',
@@ -31,7 +30,7 @@ export const GlassmorphicCard = React.forwardRef<HTMLDivElement, GlassmorphicCar
         {...props}
       >
         {children}
-      </Card>
+      </Component>
     )
   }
 )
