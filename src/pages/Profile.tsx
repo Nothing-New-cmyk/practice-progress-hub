@@ -77,13 +77,15 @@ export const Profile = () => {
       if (contestError) throw contestError;
 
       // Calculate statistics
-      const totalProblems = dailyLogs?.reduce((sum, log) => sum + log.problems_solved, 0) || 0;
-      const totalTime = dailyLogs?.reduce((sum, log) => sum + log.time_spent_minutes, 0) || 0;
+      const totalProblems = dailyLogs?.reduce((sum, log) => sum + (log.problems_solved || 0), 0) || 0;
+      const totalTime = dailyLogs?.reduce((sum, log) => sum + (log.time_spent_minutes || 0), 0) || 0;
       const contestsParticipated = contestLogs?.length || 0;
 
       // Get favorite topics
       const topicCounts = dailyLogs?.reduce((acc: Record<string, number>, log) => {
-        acc[log.topic] = (acc[log.topic] || 0) + log.problems_solved;
+        if (log.topic) {
+          acc[log.topic] = (acc[log.topic] || 0) + (log.problems_solved || 0);
+        }
         return acc;
       }, {}) || {};
 
@@ -159,6 +161,10 @@ export const Profile = () => {
       </AppLayout>
     );
   }
+
+  // Calculate hours and minutes for display
+  const totalHours = Math.floor((profile.total_time || 0) / 60);
+  const totalMinutes = (profile.total_time || 0) % 60;
 
   return (
     <AppLayout>
@@ -245,7 +251,7 @@ export const Profile = () => {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Time Spent</span>
-                  <span className="font-bold text-blue-600">{Math.floor(profile.total_time / 60)}h {profile.total_time % 60}m</span>
+                  <span className="font-bold text-blue-600">{totalHours}h {totalMinutes}m</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Contests</span>
@@ -300,7 +306,7 @@ export const Profile = () => {
               </div>
               <div className="text-center p-4 border rounded-lg">
                 <Clock className="h-6 w-6 mx-auto mb-2 text-green-500" />
-                <p className="text-2xl font-bold">{Math.floor(profile.total_time / 60)}</p>
+                <p className="text-2xl font-bold">{totalHours}</p>
                 <p className="text-sm text-muted-foreground">Hours Practiced</p>
               </div>
               <div className="text-center p-4 border rounded-lg">
