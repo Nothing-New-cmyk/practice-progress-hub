@@ -1,121 +1,83 @@
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Search, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect, useRef } from 'react';
+import { Search, X, Calendar, Trophy, Target } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
-import { useNavigate } from 'react-router-dom';
-import { supabaseClient } from '@/lib/supabase-utils';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
-
-interface SearchBarProps {
-  onSearch?: (query: string) => void;
-  placeholder?: string;
-  className?: string;
-}
+import { supabaseClient } from '@/lib/supabase-utils';
+import { useNavigate } from 'react-router-dom';
 
 interface SearchResult {
   id: string;
-  type: 'daily_log' | 'contest_log' | 'weekly_goal';
+  type: 'daily-log' | 'contest-log' | 'weekly-goal';
   title: string;
   subtitle: string;
   date: string;
+  badge?: string;
   url: string;
 }
 
-export const SearchBar: React.FC<SearchBarProps> = ({
-  onSearch,
-  placeholder = "Search logs, contests, goals...",
-  className
-}) => {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const [isExpanded, setIsExpanded] = useState(false);
+export const SearchBar: React.FC = () => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [showResults, setShowResults] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const searchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === '/' && !isExpanded && document.activeElement?.tagName !== 'INPUT') {
-        e.preventDefault();
-        setIsExpanded(true);
-      }
-      
-      if (e.key === 'Escape' && isExpanded) {
-        setIsExpanded(false);
-        setQuery('');
-        setShowResults(false);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
       }
     };
 
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsExpanded(false);
-        setShowResults(false);
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('mousedown', handleClickOutside);
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isExpanded]);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
-    if (isExpanded && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isExpanded]);
-
-  useEffect(() => {
-    if (query.trim() && user) {
-      performSearch(query.trim());
+    if (query.length >= 2 && user) {
+      performSearch(query);
     } else {
       setResults([]);
-      setShowResults(false);
+      setIsOpen(false);
     }
   }, [query, user]);
 
   const performSearch = async (searchQuery: string) => {
     if (!user) return;
 
-    setIsSearching(true);
+    setLoading(true);
     try {
       const searchResults: SearchResult[] = [];
 
       // Search daily logs
-      const { data: dailyLogs, error: dailyError } = await supabaseClient
+      const { data: dailyLogs } = await supabaseClient
         .from('daily_logs')
         .select('*')
         .eq('user_id', user.id)
-        .or(`topic.ilike.%${searchQuery}%,platform.ilike.%${searchQuery}%,notes.ilike.%${searchQuery}%,difficulty.ilike.%${searchQuery}%`)
+        .or(`topic.ilike.%${searchQuery}%,platform.ilike.%${searchQuery}%,difficulty.ilike.%${searchQuery}%,notes.ilike.%${searchQuery}%`)
         .order('date', { ascending: false })
         .limit(5);
 
-      if (!dailyError && dailyLogs) {
-        dailyLogs.forEach(log => {
-          searchResults.push({
-            id: log.id,
-            type: 'daily_log',
-            title: `${log.topic} - ${log.platform}`,
-            subtitle: `${log.problems_solved} problems solved, ${log.difficulty}`,
-            date: log.date,
-            url: '/daily-log'
-          });
+      dailyLogs?.forEach(log => {
+        searchResults.push({
+          id: log.id,
+          type: 'daily-log',
+          title: `${log.problems_solved} problems on ${log.platform}`,
+          subtitle: `Topic: ${log.topic} • Difficulty: ${log.difficulty}`,
+          date: log.date,
+          badge: `${log.problems_solved} solved`,
+          url: '/daily-log'
         });
-      }
+      });
 
       // Search contest logs
-      const { data: contestLogs, error: contestError } = await supabaseClient
+      const { data: contestLogs } = await supabaseClient
         .from('contest_logs')
         .select('*')
         .eq('user_id', user.id)
@@ -123,191 +85,153 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         .order('date', { ascending: false })
         .limit(5);
 
-      if (!contestError && contestLogs) {
-        contestLogs.forEach(log => {
-          searchResults.push({
-            id: log.id,
-            type: 'contest_log',
-            title: log.contest_name,
-            subtitle: `${log.platform} - ${log.problems_solved} problems solved`,
-            date: log.date,
-            url: '/contest-log'
-          });
+      contestLogs?.forEach(log => {
+        searchResults.push({
+          id: log.id,
+          type: 'contest-log',
+          title: log.contest_name,
+          subtitle: `Platform: ${log.platform} • Rank: ${log.rank || 'N/A'}`,
+          date: log.date,
+          badge: log.rank ? `Rank ${log.rank}` : undefined,
+          url: '/contest-log'
         });
-      }
+      });
 
       // Search weekly goals
-      const { data: weeklyGoals, error: goalsError } = await supabaseClient
+      const { data: weeklyGoals } = await supabaseClient
         .from('weekly_goals')
         .select('*')
         .eq('user_id', user.id)
-        .or(`goal_description.ilike.%${searchQuery}%,review_notes.ilike.%${searchQuery}%`)
-        .order('week_start_date', { ascending: false })
+        .ilike('goal_description', `%${searchQuery}%`)
+        .order('created_at', { ascending: false })
         .limit(5);
 
-      if (!goalsError && weeklyGoals) {
-        weeklyGoals.forEach(goal => {
-          searchResults.push({
-            id: goal.id,
-            type: 'weekly_goal',
-            title: goal.goal_description,
-            subtitle: `${goal.current_value}/${goal.target_value} - ${goal.status}`,
-            date: goal.week_start_date,
-            url: '/weekly-goals'
-          });
+      weeklyGoals?.forEach(goal => {
+        const progress = Math.round((goal.current_value / goal.target_value) * 100);
+        searchResults.push({
+          id: goal.id,
+          type: 'weekly-goal',
+          title: goal.goal_description,
+          subtitle: `Progress: ${goal.current_value}/${goal.target_value}`,
+          date: goal.week_start_date,
+          badge: `${progress}%`,
+          url: '/weekly-goals'
         });
-      }
+      });
 
-      // Sort by date (most recent first)
-      searchResults.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      
-      setResults(searchResults.slice(0, 10));
-      setShowResults(true);
-
+      setResults(searchResults.slice(0, 8));
+      setIsOpen(searchResults.length > 0);
     } catch (error) {
       console.error('Search error:', error);
-      toast({
-        title: "Search Error",
-        description: "Failed to perform search",
-        variant: "destructive",
-      });
     } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) {
-      onSearch?.(query.trim());
-      
-      // Navigate to analytics page with search context
-      navigate('/analytics', { state: { searchQuery: query.trim() } });
-      setIsExpanded(false);
-      setQuery('');
-      setShowResults(false);
+      setLoading(false);
     }
   };
 
   const handleResultClick = (result: SearchResult) => {
     navigate(result.url);
-    setIsExpanded(false);
     setQuery('');
-    setShowResults(false);
+    setIsOpen(false);
   };
 
-  const handleClose = () => {
-    setIsExpanded(false);
-    setQuery('');
-    setShowResults(false);
-  };
-
-  const getTypeIcon = (type: string) => {
+  const getResultIcon = (type: SearchResult['type']) => {
     switch (type) {
-      case 'daily_log':
-        return '📝';
-      case 'contest_log':
-        return '🏆';
-      case 'weekly_goal':
-        return '🎯';
-      default:
-        return '📄';
+      case 'daily-log':
+        return <Calendar className="h-4 w-4 text-blue-500" />;
+      case 'contest-log':
+        return <Trophy className="h-4 w-4 text-yellow-500" />;
+      case 'weekly-goal':
+        return <Target className="h-4 w-4 text-green-500" />;
+    }
+  };
+
+  const getResultTypeLabel = (type: SearchResult['type']) => {
+    switch (type) {
+      case 'daily-log':
+        return 'Daily Log';
+      case 'contest-log':
+        return 'Contest';
+      case 'weekly-goal':
+        return 'Goal';
     }
   };
 
   return (
-    <div ref={containerRef} className={cn("relative", className)}>
-      {!isExpanded ? (
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setIsExpanded(true)}
-          className="h-9 w-9"
-          aria-label="Open search (Press / to focus)"
-          title="Search (Press / to focus)"
-        >
-          <Search className="h-4 w-4" />
-        </Button>
-      ) : (
-        <div className="relative">
-          <form onSubmit={handleSubmit} className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                ref={inputRef}
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={placeholder}
-                className="pl-8 pr-8 w-64"
-                aria-label="Search input"
-              />
-              {query && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    setQuery('');
-                    setShowResults(false);
-                  }}
-                  className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2"
-                  aria-label="Clear search"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={handleClose}
-              className="h-9 w-9"
-              aria-label="Close search"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </form>
+    <div ref={searchRef} className="relative w-full max-w-md">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          type="text"
+          placeholder="Search logs, contests, goals..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => query.length >= 2 && setIsOpen(true)}
+          className="pl-10 pr-10 w-full"
+        />
+        {query && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setQuery('');
+              setIsOpen(false);
+            }}
+            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
 
-          {/* Search Results Dropdown */}
-          {showResults && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-50 max-h-80 overflow-y-auto">
-              {isSearching ? (
-                <div className="p-4 text-center text-muted-foreground">
-                  Searching...
-                </div>
-              ) : results.length > 0 ? (
-                <div className="py-2">
-                  {results.map((result) => (
-                    <button
-                      key={result.id}
-                      onClick={() => handleResultClick(result)}
-                      className="w-full px-4 py-3 text-left hover:bg-accent transition-colors flex items-start gap-3"
-                    >
-                      <span className="text-lg">{getTypeIcon(result.type)}</span>
+      {isOpen && (
+        <Card className="absolute top-full left-0 right-0 mt-2 z-50 max-h-96 overflow-y-auto">
+          <CardContent className="p-0">
+            {loading ? (
+              <div className="p-4 text-center text-muted-foreground">
+                Searching...
+              </div>
+            ) : results.length > 0 ? (
+              <div className="divide-y">
+                {results.map((result) => (
+                  <div
+                    key={`${result.type}-${result.id}`}
+                    onClick={() => handleResultClick(result)}
+                    className="p-3 hover:bg-accent cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-start gap-3">
+                      {getResultIcon(result.type)}
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm truncate">
-                          {result.title}
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-medium truncate">
+                            {result.title}
+                          </span>
+                          <Badge variant="secondary" className="text-xs">
+                            {getResultTypeLabel(result.type)}
+                          </Badge>
+                          {result.badge && (
+                            <Badge variant="outline" className="text-xs">
+                              {result.badge}
+                            </Badge>
+                          )}
                         </div>
-                        <div className="text-xs text-muted-foreground truncate">
+                        <p className="text-xs text-muted-foreground truncate">
                           {result.subtitle}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
                           {new Date(result.date).toLocaleDateString()}
-                        </div>
+                        </p>
                       </div>
-                    </button>
-                  ))}
-                </div>
-              ) : query.trim() ? (
-                <div className="p-4 text-center text-muted-foreground">
-                  No results found for "{query}"
-                </div>
-              ) : null}
-            </div>
-          )}
-        </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 text-center text-muted-foreground">
+                No results found for "{query}"
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
     </div>
   );
