@@ -14,10 +14,13 @@ import { Button } from '@/components/ui/button';
 import { ActivityHeatmap } from '@/components/charts/ActivityHeatmap';
 import { DifficultyChart } from '@/components/charts/DifficultyChart';
 import { TopicProgress } from '@/components/features/TopicProgress';
-import { Achievements } from '@/components/features/Achievements';
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { supabaseClient } from '@/lib/supabase-utils';
+import { useToast } from '@/hooks/use-toast';
 
 import {
   Code2,
@@ -27,7 +30,6 @@ import {
   CheckCircle,
   XCircle,
   Settings,
-  Bell,
   Star,
   Brain,
   Timer,
@@ -41,70 +43,205 @@ import {
 
 export const Dashboard: React.FC = () => {
   const { data, loading, refreshData } = useDashboardData();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
+  
+  const [realTimeData, setRealTimeData] = useState({
+    heatmapData: [] as Array<{ date: string; count: number; level: 0 | 1 | 2 | 3 | 4 }>,
+    difficultyData: [] as Array<{ difficulty: string; count: number; color: string }>,
+    topicsData: [] as Array<{ topic: string; solved: number; total: number; percentage: number }>,
+    badgesCount: 0,
+    platformData: [] as Array<{ platform: string; count: number }>,
+    currentStreak: 0,
+    longestStreak: 0,
+    successRate: 0,
+  });
 
-  // Create summary object from dashboard data
-  const summary = {
-    problemsThisWeek: data.weeklyStats.problemsSolved,
-    hoursThisWeek: Math.floor(data.weeklyStats.timeSpent / 60),
-    currentStreak: data.currentStreak,
-    longestStreak: data.currentStreak, // TODO: Calculate actual longest streak
-    lastActivityDate: new Date().toISOString(),
-    badgesEarned: 5, // Mock data - will be replaced with real data
-    latestBadgeName: "Problem Solver",
-    difficultyData: [
-      { name: 'Easy', value: 45, color: '#10B981' },
-      { name: 'Medium', value: 30, color: '#F59E0B' },
-      { name: 'Hard', value: 15, color: '#EF4444' }
-    ],
-    topicProgress: [
-      { topic: 'Arrays', solved: 25, total: 50, difficulty: 'Medium' as const },
-      { topic: 'Dynamic Programming', solved: 12, total: 30, difficulty: 'Hard' as const },
-      { topic: 'Trees', solved: 18, total: 25, difficulty: 'Medium' as const }
-    ],
-    bestWeek: 25,
-    fastestSolve: 15,
-    currentLevelLabel: "Intermediate",
-    currentXP: 1250,
-    nextLevelXP: 2000,
-    completedGoals: data.weeklyGoals.filter(g => g.status === 'completed').length,
-    totalGoals: data.weeklyGoals.length,
-    weeklyGoals: data.weeklyGoals.map(goal => ({
-      id: goal.id,
-      goal: goal.goal_description,
-      current: goal.current_value,
-      target: goal.target_value,
-      status: goal.status
-    })),
-    recentActivity: data.recentLogs.slice(0, 5).map((log, index) => ({
-      id: `activity-${index}`,
-      action: `Solved ${log.problems_solved} problems`,
-      time: new Date(log.date).toLocaleDateString(),
-      platform: "LeetCode"
-    }))
+  useEffect(() => {
+    if (user) {
+      fetchRealTimeData();
+    }
+  }, [user]);
+
+  const fetchRealTimeData = async () => {
+    if (!user) return;
+
+    try {
+      // Fetch daily logs for analytics
+      const { data: dailyLogs, error: dailyError } = await supabaseClient
+        .from('daily_logs')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false });
+
+      if (dailyError) throw dailyError;
+
+      // Fetch user badges
+      const { data: userBadges, error: badgesError } = await supabaseClient
+        .from('user_badges')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (badgesError) throw badgesError;
+
+      // Process heatmap data
+      const heatmapData = generateHeatmapFromLogs(dailyLogs || []);
+      
+      // Process difficulty data
+      const difficultyData = processDifficultyData(dailyLogs || []);
+      
+      // Process topics data
+      const topicsData = processTopicsData(dailyLogs || []);
+      
+      // Process platform data
+      const platformData = processPlatformData(dailyLogs || []);
+      
+      // Calculate streaks and success rate
+      const { currentStreak, longestStreak } = calculateStreaks(dailyLogs || []);
+      const successRate = calculateSuccessRate(dailyLogs || []);
+
+      setRealTimeData({
+        heatmapData,
+        difficultyData,
+        topicsData,
+        badgesCount: userBadges?.length || 0,
+        platformData,
+        currentStreak,
+        longestStreak,
+        successRate,
+      });
+
+    } catch (error) {
+      console.error('Error fetching real-time data:', error);
+    }
+  };
+
+  const generateHeatmapFromLogs = (logs: any[]) => {
+    const today = new Date();
+    const heatmapData = [];
+    
+    const logMap = new Map();
+    logs.forEach(log => {
+      logMap.set(log.date, (log.problems_solved || 0));
+    });
+
+    for (let i = 0; i < 365; i++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      const count = logMap.get(dateStr) || 0;
+      
+      let level: 0 | 1 | 2 | 3 | 4 = 0;
+      if (count > 0) level = 1;
+      if (count >= 3) level = 2;
+      if (count >= 5) level = 3;
+      if (count >= 8) level = 4;
+
+      heatmapData.push({ date: dateStr, count, level });
+    }
+
+    return heatmapData;
+  };
+
+  const processDifficultyData = (logs: any[]) => {
+    const difficultyCounts = { easy: 0, medium: 0, hard: 0 };
+    
+    logs.forEach(log => {
+      const difficulty = log.difficulty?.toLowerCase();
+      if (difficulty && difficultyCounts.hasOwnProperty(difficulty)) {
+        difficultyCounts[difficulty as keyof typeof difficultyCounts] += log.problems_solved || 0;
+      }
+    });
+
+    return [
+      { difficulty: 'Easy', count: difficultyCounts.easy, color: '#10B981' },
+      { difficulty: 'Medium', count: difficultyCounts.medium, color: '#F59E0B' },
+      { difficulty: 'Hard', count: difficultyCounts.hard, color: '#EF4444' }
+    ];
+  };
+
+  const processTopicsData = (logs: any[]) => {
+    const topicCounts = new Map();
+    
+    logs.forEach(log => {
+      if (log.topic) {
+        const current = topicCounts.get(log.topic) || 0;
+        topicCounts.set(log.topic, current + (log.problems_solved || 0));
+      }
+    });
+
+    return Array.from(topicCounts.entries())
+      .map(([topic, solved]) => ({
+        topic,
+        solved: solved as number,
+        total: (solved as number) + Math.max(10, Math.floor((solved as number) * 0.3)),
+        percentage: Math.min(100, ((solved as number) / ((solved as number) + Math.max(10, Math.floor((solved as number) * 0.3)))) * 100)
+      }))
+      .sort((a, b) => b.solved - a.solved)
+      .slice(0, 5);
+  };
+
+  const processPlatformData = (logs: any[]) => {
+    const platformCounts = new Map();
+    
+    logs.forEach(log => {
+      if (log.platform) {
+        const current = platformCounts.get(log.platform) || 0;
+        platformCounts.set(log.platform, current + (log.problems_solved || 0));
+      }
+    });
+
+    return Array.from(platformCounts.entries())
+      .map(([platform, count]) => ({ platform, count: count as number }))
+      .sort((a, b) => b.count - a.count);
+  };
+
+  const calculateStreaks = (logs: any[]) => {
+    if (logs.length === 0) return { currentStreak: 0, longestStreak: 0 };
+    
+    const sortedLogs = logs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    let currentStreak = 0;
+    let longestStreak = 0;
+    let tempStreak = 0;
+    
+    const today = new Date();
+    
+    for (let i = 0; i < sortedLogs.length; i++) {
+      const logDate = new Date(sortedLogs[i].date);
+      const daysDiff = Math.floor((today.getTime() - logDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (sortedLogs[i].problems_solved > 0) {
+        if (daysDiff === i) {
+          tempStreak++;
+          if (i === 0 || daysDiff === 0 || daysDiff === 1) {
+            currentStreak = tempStreak;
+          }
+        } else {
+          tempStreak = 1;
+        }
+        longestStreak = Math.max(longestStreak, tempStreak);
+      } else {
+        tempStreak = 0;
+      }
+    }
+    
+    return { currentStreak, longestStreak };
+  };
+
+  const calculateSuccessRate = (logs: any[]) => {
+    if (logs.length === 0) return 0;
+    
+    const successfulSessions = logs.filter(log => (log.problems_solved || 0) > 0).length;
+    return Math.round((successfulSessions / logs.length) * 100);
   };
 
   // Generate sparkline data based on current values
   const generateSparklineData = (baseValue: number) => {
     return Array.from({ length: 7 }, (_, i) => ({
-      value: Math.max(0, baseValue + Math.floor(Math.random() * 10) - 5)
+      value: Math.max(0, baseValue + Math.floor(Math.random() * 3) - 1)
     }));
-  };
-
-  // Generate heatmap data for the last year
-  const generateHeatmapData = () => {
-    const today = new Date();
-    return Array.from({ length: 365 }, (_, idx) => {
-      const d = new Date(today);
-      d.setDate(d.getDate() - idx);
-      const level = (Math.floor(Math.random() * 5) as 0 | 1 | 2 | 3 | 4);
-      return {
-        date: d.toISOString().split('T')[0],
-        count: level * 2,
-        level,
-      };
-    });
   };
 
   // Loading & Error Handling
@@ -128,9 +265,8 @@ export const Dashboard: React.FC = () => {
     );
   }
 
-  const problemsSparklineData = generateSparklineData(summary.problemsThisWeek);
-  const hoursSparklineData = generateSparklineData(summary.hoursThisWeek);
-  const heatmapData = generateHeatmapData();
+  const problemsSparklineData = generateSparklineData(data.weeklyStats.problemsSolved);
+  const hoursSparklineData = generateSparklineData(Math.floor(data.weeklyStats.timeSpent / 60));
 
   return (
     <AppLayout>
@@ -160,18 +296,14 @@ export const Dashboard: React.FC = () => {
             as="button"
             onClick={() => navigate('/daily-log')}
             className="p-6 hover:shadow-xl transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-            aria-label="View problems this week details"
           >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Problems This Week</p>
                 <div className="flex items-baseline space-x-2">
                   <span className="text-3xl font-bold">
-                    {summary.problemsThisWeek}
+                    {data.weeklyStats.problemsSolved}
                   </span>
-                  <Badge variant="secondary" className="text-xs">
-                    +{Math.round(Math.random() * 20)}%
-                  </Badge>
                 </div>
               </div>
               <div className="flex flex-col items-end space-y-2">
@@ -190,11 +322,8 @@ export const Dashboard: React.FC = () => {
                 <p className="text-sm text-muted-foreground">Hours This Week</p>
                 <div className="flex items-baseline space-x-2">
                   <span className="text-3xl font-bold">
-                    {summary.hoursThisWeek}
+                    {Math.floor(data.weeklyStats.timeSpent / 60)}
                   </span>
-                  <Badge variant="secondary" className="text-xs">
-                    +{Math.round(Math.random() * 15)}%
-                  </Badge>
                 </div>
               </div>
               <div className="flex flex-col items-end space-y-2">
@@ -213,10 +342,10 @@ export const Dashboard: React.FC = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
           >
             <StreakCounter
-              currentStreak={summary.currentStreak}
-              longestStreak={summary.longestStreak}
-              lastActivity={new Date(summary.lastActivityDate)}
-              className="p-6 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              currentStreak={realTimeData.currentStreak}
+              longestStreak={realTimeData.longestStreak}
+              lastActivity={new Date()}
+              className="p-6 rounded-lg shadow-sm"
             />
           </motion.div>
 
@@ -225,7 +354,6 @@ export const Dashboard: React.FC = () => {
             as="button"
             onClick={() => navigate('/achievements')}
             className="p-6 hover:shadow-xl transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-            aria-label="View all earned badges"
           >
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -237,10 +365,10 @@ export const Dashboard: React.FC = () => {
                   <Trophy className="h-8 w-8 text-yellow-500" />
                   <div>
                     <p className="text-2xl font-bold">
-                      {summary.badgesEarned}
+                      {realTimeData.badgesCount}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Latest: {summary.latestBadgeName}
+                      View all achievements
                     </p>
                   </div>
                 </div>
@@ -257,13 +385,8 @@ export const Dashboard: React.FC = () => {
             initial={shouldReduceMotion ? {} : { opacity: 0, x: -20 }}
             animate={shouldReduceMotion ? {} : { opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            role="region"
-            aria-labelledby="heatmap-heading"
           >
-            <h2 id="heatmap-heading" className="sr-only">
-              Activity Heatmap
-            </h2>
-            <ActivityHeatmap data={heatmapData} />
+            <ActivityHeatmap data={realTimeData.heatmapData} />
           </motion.section>
 
           {/* Difficulty & Topic Progress */}
@@ -273,120 +396,9 @@ export const Dashboard: React.FC = () => {
             animate={shouldReduceMotion ? {} : { opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
           >
-            <section
-              role="region"
-              aria-labelledby="difficulty-chart-heading"
-            >
-              <h2 id="difficulty-chart-heading" className="sr-only">
-                Difficulty Mastery Chart
-              </h2>
-              <DifficultyChart
-                data={summary.difficultyData.map(item => ({
-                  difficulty: item.name,
-                  count: item.value,
-                  color: item.color
-                }))}
-                aria-label="Bar chart showing count of Easy, Medium, Hard problems solved"
-              />
-            </section>
-
-            <section
-              role="region"
-              aria-labelledby="topic-progress-heading"
-            >
-              <h2 id="topic-progress-heading" className="sr-only">
-                Topic Progress
-              </h2>
-              <TopicProgress topics={summary.topicProgress} />
-            </section>
+            <DifficultyChart data={realTimeData.difficultyData} />
+            <TopicProgress topics={realTimeData.topicsData} />
           </motion.div>
-        </div>
-
-        {/* Additional Analytics Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Personal Bests */}
-          <EnhancedCard
-            title="Personal Bests"
-            subtitle="Your record achievements"
-            icon={Star}
-          >
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Best Week Ever</span>
-                <span className="font-bold text-green-600 dark:text-green-400">
-                  {summary.bestWeek} problems
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Longest Streak</span>
-                <span className="font-bold text-orange-600 dark:text-orange-400">
-                  {summary.longestStreak} days
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Fastest Solve</span>
-                <span className="font-bold text-blue-600 dark:text-blue-400">
-                  {summary.fastestSolve} minutes
-                </span>
-              </div>
-            </div>
-          </EnhancedCard>
-
-          {/* Skill Progression */}
-          <EnhancedCard
-            title="Skill Level"
-            subtitle="XP progression system"
-            icon={Brain}
-          >
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Current Level</span>
-                <Badge variant="outline">{summary.currentLevelLabel}</Badge>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>XP Progress</span>
-                  <span>
-                    {summary.currentXP.toLocaleString()} / {summary.nextLevelXP.toLocaleString()}
-                  </span>
-                </div>
-                <div className="w-full bg-secondary rounded-full h-2">
-                  <div
-                    className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-600"
-                    style={{ width: `${(summary.currentXP / summary.nextLevelXP) * 100}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-          </EnhancedCard>
-
-          {/* Focus Timer */}
-          <EnhancedCard
-            title="Focus Timer"
-            subtitle="Pomodoro sessions"
-            icon={Timer}
-          >
-            <div className="text-center space-y-4">
-              <div className="text-3xl font-mono font-bold">
-                25:00
-              </div>
-              <div className="flex justify-center space-x-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="justify-center"
-                  aria-label="Start timer"
-                  onClick={() => console.log('Start timer')}
-                >
-                  <Play className="h-4 w-4 mr-1" />
-                  Start
-                </Button>
-                <Button size="sm" variant="ghost" aria-label="Reset timer">
-                  <RotateCcw className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </EnhancedCard>
         </div>
 
         {/* Goals & Activity Section */}
@@ -403,14 +415,14 @@ export const Dashboard: React.FC = () => {
               icon={Calendar}
               badges={[
                 {
-                  label: `${summary.completedGoals}/${summary.totalGoals} Completed`,
+                  label: `${data.weeklyGoals.filter(g => g.status === 'completed').length}/${data.weeklyGoals.length} Completed`,
                   variant: 'default',
                 },
               ]}
             >
               <div className="space-y-4">
-                {summary.weeklyGoals.map((goal) => {
-                  const progressPercent = (goal.current / goal.target) * 100;
+                {data.weeklyGoals.slice(0, 3).map((goal) => {
+                  const progressPercent = (goal.current_value / goal.target_value) * 100;
                   const StatusIcon =
                     goal.status === 'completed'
                       ? CheckCircle
@@ -428,31 +440,16 @@ export const Dashboard: React.FC = () => {
                     <div
                       key={goal.id}
                       className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors cursor-pointer"
-                      role="button"
-                      tabIndex={0}
                       onClick={() => navigate(`/weekly-goals`)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          navigate(`/weekly-goals`);
-                        }
-                      }}
-                      aria-label={`View goal: ${goal.goal}`}
                     >
                       <div className="flex items-center space-x-3">
-                        <StatusIcon className={`h-5 w-5 ${statusColor}`} aria-hidden="true" />
+                        <StatusIcon className={`h-5 w-5 ${statusColor}`} />
                         <div>
                           <p className="font-medium text-sm">
-                            {goal.goal}
+                            {goal.goal_description}
                           </p>
                           <div className="flex items-center space-x-2 mt-1">
-                            <div
-                              role="progressbar"
-                              aria-valuenow={Math.min(progressPercent, 100)}
-                              aria-valuemin={0}
-                              aria-valuemax={100}
-                              aria-label={`${goal.current} of ${goal.target} completed`}
-                              className="w-24 bg-secondary rounded-full h-1.5"
-                            >
+                            <div className="w-24 bg-secondary rounded-full h-1.5">
                               <div
                                 className={`h-1.5 rounded-full ${
                                   goal.status === 'completed'
@@ -465,20 +462,12 @@ export const Dashboard: React.FC = () => {
                               />
                             </div>
                             <span className="text-xs text-muted-foreground">
-                              {goal.current}/{goal.target}
+                              {goal.current_value}/{goal.target_value}
                             </span>
                           </div>
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        aria-label={`Edit goal: ${goal.goal}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/weekly-goals`);
-                        }}
-                      >
+                      <Button variant="ghost" size="sm">
                         <Settings className="h-4 w-4" />
                       </Button>
                     </div>
@@ -500,27 +489,19 @@ export const Dashboard: React.FC = () => {
               icon={Activity}
             >
               <div className="space-y-3">
-                {summary.recentActivity.map((activity) => (
+                {data.recentLogs.slice(0, 5).map((log, index) => (
                   <div
-                    key={activity.id}
+                    key={`activity-${index}`}
                     className="flex items-center space-x-3 p-2 hover:bg-accent rounded transition-colors cursor-pointer"
                     onClick={() => navigate(`/daily-log`)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        navigate(`/daily-log`);
-                      }
-                    }}
-                    aria-label={`${activity.action}, ${activity.time}, via ${activity.platform}`}
                   >
-                    <div className="w-2 h-2 bg-green-500 rounded-full" aria-hidden="true" />
+                    <div className="w-2 h-2 bg-green-500 rounded-full" />
                     <div className="flex-1">
                       <p className="text-sm font-medium">
-                        {activity.action}
+                        Solved {log.problems_solved} problems
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {activity.time} • {activity.platform}
+                        {new Date(log.date).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
@@ -547,7 +528,6 @@ export const Dashboard: React.FC = () => {
                 className="w-full justify-start"
                 size="sm"
                 onClick={() => navigate('/daily-log')}
-                aria-label="Log Today's Practice"
               >
                 <Calendar className="h-4 w-4 mr-2" />
                 Log Today's Practice
@@ -557,7 +537,6 @@ export const Dashboard: React.FC = () => {
                 className="w-full justify-start"
                 size="sm"
                 onClick={() => navigate('/contest-log')}
-                aria-label="View Contest Schedule"
               >
                 <Trophy className="h-4 w-4 mr-2" />
                 View Contest Schedule
@@ -567,7 +546,6 @@ export const Dashboard: React.FC = () => {
                 className="w-full justify-start"
                 size="sm"
                 onClick={() => navigate('/weekly-goals')}
-                aria-label="Weekly Review"
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Weekly Review

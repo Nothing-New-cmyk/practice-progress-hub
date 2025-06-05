@@ -18,6 +18,7 @@ import { WeeklyGoals } from '@/pages/WeeklyGoals';
 import { Analytics } from '@/pages/Analytics';
 import { Profile } from '@/pages/Profile';
 import { Settings } from '@/pages/Settings';
+import { Achievements } from '@/pages/Achievements';
 import NotFound from '@/pages/NotFound';
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ function App() {
               <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="/achievements" element={<ProtectedRoute><Achievements /></ProtectedRoute>} />
               
               {/* 404 route */}
               <Route path="*" element={<NotFound />} />

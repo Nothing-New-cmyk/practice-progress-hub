@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,49 +10,164 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Clock, Trophy, Target, CheckCircle } from 'lucide-react';
+import { Bell, Clock, Trophy, Target, CheckCircle, Calendar, Flame } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { supabaseClient } from '@/lib/supabase-utils';
+import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
-const mockNotifications = [
-  {
-    id: '1',
-    type: 'reminder',
-    title: 'Daily Practice Reminder',
-    message: 'Time for your daily coding practice!',
-    time: '5 minutes ago',
-    read: false,
-    icon: Clock,
-  },
-  {
-    id: '2',
-    type: 'achievement',
-    title: 'New Badge Earned!',
-    message: 'You earned the "Problem Solver" badge',
-    time: '2 hours ago',
-    read: false,
-    icon: Trophy,
-  },
-  {
-    id: '3',
-    type: 'goal',
-    title: 'Weekly Goal Progress',
-    message: 'You\'re 80% towards your weekly goal',
-    time: '1 day ago',
-    read: true,
-    icon: Target,
-  },
-];
+interface Notification {
+  id: string;
+  type: 'reminder' | 'achievement' | 'goal' | 'streak' | 'contest';
+  title: string;
+  message: string;
+  time: string;
+  read: boolean;
+  icon: React.ElementType;
+  actionUrl?: string;
+}
 
 export const NotificationsDropdown: React.FC = () => {
-  const unreadCount = mockNotifications.filter(n => !n.read).length;
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleMarkAllRead = () => {
-    console.log('Mark all notifications as read');
-    // TODO: Implement mark all as read functionality
+  useEffect(() => {
+    if (user) {
+      generateNotifications();
+    }
+  }, [user]);
+
+  const generateNotifications = async () => {
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      const notifications: Notification[] = [];
+
+      // Check for recent achievements
+      const { data: userBadges } = await supabaseClient
+        .from('user_badges')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('earned_at', { ascending: false })
+        .limit(3);
+
+      userBadges?.forEach(badge => {
+        const earnedDate = new Date(badge.earned_at);
+        const daysSince = Math.floor((Date.now() - earnedDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (daysSince <= 7) {
+          notifications.push({
+            id: `badge-${badge.id}`,
+            type: 'achievement',
+            title: 'New Achievement Unlocked!',
+            message: `You earned a new badge: ${badge.badge_id.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}`,
+            time: daysSince === 0 ? 'Today' : `${daysSince} days ago`,
+            read: daysSince > 1,
+            icon: Trophy,
+            actionUrl: '/achievements'
+          });
+        }
+      });
+
+      // Check for streak milestones
+      const { data: recentLogs } = await supabaseClient
+        .from('daily_logs')
+        .select('date, problems_solved')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false })
+        .limit(7);
+
+      if (recentLogs && recentLogs.length > 0) {
+        const hasStreakToday = recentLogs[0] && recentLogs[0].problems_solved > 0;
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+        
+        if (!hasStreakToday) {
+          notifications.push({
+            id: 'daily-reminder',
+            type: 'reminder',
+            title: 'Daily Practice Reminder',
+            message: 'Don\'t break your streak! Log your coding practice for today.',
+            time: '2 hours ago',
+            read: false,
+            icon: Clock,
+            actionUrl: '/daily-log'
+          });
+        }
+      }
+
+      // Check for weekly goals progress
+      const { data: currentGoals } = await supabaseClient
+        .from('weekly_goals')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'in_progress')
+        .limit(3);
+
+      currentGoals?.forEach(goal => {
+        const progress = (goal.current_value / goal.target_value) * 100;
+        if (progress >= 80 && progress < 100) {
+          notifications.push({
+            id: `goal-${goal.id}`,
+            type: 'goal',
+            title: 'Goal Almost Complete!',
+            message: `You're ${Math.round(progress)}% towards "${goal.goal_description}"`,
+            time: '1 day ago',
+            read: false,
+            icon: Target,
+            actionUrl: '/weekly-goals'
+          });
+        }
+      });
+
+      // Add a few system notifications for better UX
+      if (notifications.length < 3) {
+        notifications.push({
+          id: 'welcome',
+          type: 'achievement',
+          title: 'Welcome to CodeTracker!',
+          message: 'Start logging your daily practice to track your progress.',
+          time: '3 days ago',
+          read: true,
+          icon: CheckCircle,
+          actionUrl: '/daily-log'
+        });
+      }
+
+      setNotifications(notifications.slice(0, 10));
+    } catch (error) {
+      console.error('Error generating notifications:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleNotificationClick = (notificationId: string) => {
-    console.log('Notification clicked:', notificationId);
-    // TODO: Implement notification click handling
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const handleMarkAllRead = async () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    toast({
+      title: "Success",
+      description: "All notifications marked as read",
+    });
+  };
+
+  const handleNotificationClick = (notification: Notification) => {
+    if (notification.actionUrl) {
+      navigate(notification.actionUrl);
+    }
+    
+    // Mark as read
+    setNotifications(prev => 
+      prev.map(n => 
+        n.id === notification.id ? { ...n, read: true } : n
+      )
+    );
   };
 
   return (
@@ -91,18 +206,22 @@ export const NotificationsDropdown: React.FC = () => {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         
-        {mockNotifications.length === 0 ? (
+        {loading ? (
+          <DropdownMenuItem disabled className="text-center text-muted-foreground">
+            Loading notifications...
+          </DropdownMenuItem>
+        ) : notifications.length === 0 ? (
           <DropdownMenuItem disabled className="text-center text-muted-foreground">
             No notifications
           </DropdownMenuItem>
         ) : (
-          mockNotifications.map((notification) => {
+          notifications.map((notification) => {
             const IconComponent = notification.icon;
             return (
               <DropdownMenuItem
                 key={notification.id}
                 className="flex items-start gap-3 p-3 cursor-pointer"
-                onClick={() => handleNotificationClick(notification.id)}
+                onClick={() => handleNotificationClick(notification)}
               >
                 <div className="flex-shrink-0 mt-1">
                   <IconComponent className="h-4 w-4 text-muted-foreground" />
@@ -129,7 +248,10 @@ export const NotificationsDropdown: React.FC = () => {
         )}
         
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-center text-sm text-muted-foreground">
+        <DropdownMenuItem 
+          className="text-center text-sm text-muted-foreground cursor-pointer"
+          onClick={() => navigate('/notifications')}
+        >
           View all notifications
         </DropdownMenuItem>
       </DropdownMenuContent>
