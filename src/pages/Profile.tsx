@@ -76,15 +76,24 @@ export const Profile = () => {
 
       if (contestError) throw contestError;
 
-      // Calculate statistics
-      const totalProblems = dailyLogs?.reduce((sum, log) => sum + (log.problems_solved || 0), 0) || 0;
-      const totalTime = dailyLogs?.reduce((sum, log) => sum + (log.time_spent_minutes || 0), 0) || 0;
+      // Calculate statistics with proper number conversion
+      const totalProblems = dailyLogs?.reduce((sum, log) => {
+        const problems = Number(log.problems_solved) || 0;
+        return sum + problems;
+      }, 0) || 0;
+      
+      const totalTime = dailyLogs?.reduce((sum, log) => {
+        const timeSpent = Number(log.time_spent_minutes) || 0;
+        return sum + timeSpent;
+      }, 0) || 0;
+      
       const contestsParticipated = contestLogs?.length || 0;
 
       // Get favorite topics
       const topicCounts = dailyLogs?.reduce((acc: Record<string, number>, log) => {
         if (log.topic) {
-          acc[log.topic] = (acc[log.topic] || 0) + (log.problems_solved || 0);
+          const problems = Number(log.problems_solved) || 0;
+          acc[log.topic] = (acc[log.topic] || 0) + problems;
         }
         return acc;
       }, {}) || {};
