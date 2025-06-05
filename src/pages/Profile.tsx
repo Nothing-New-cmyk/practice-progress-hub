@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { AppLayout } from '@/components/layouts/AppLayout';
@@ -61,7 +60,7 @@ export const Profile = () => {
         throw profileError;
       }
 
-      // Fetch statistics
+      // Fetch daily logs
       const { data: dailyLogs, error: dailyError } = await supabaseClient
         .from('daily_logs')
         .select('problems_solved, time_spent_minutes, topic')
@@ -69,6 +68,7 @@ export const Profile = () => {
 
       if (dailyError) throw dailyError;
 
+      // Fetch contest logs
       const { data: contestLogs, error: contestError } = await supabaseClient
         .from('contest_logs')
         .select('id')
@@ -76,30 +76,30 @@ export const Profile = () => {
 
       if (contestError) throw contestError;
 
-      // Calculate statistics with proper number conversion
-      const totalProblems = dailyLogs?.reduce((sum, log) => {
+      // Calculate statistics safely
+      const totalProblems = (dailyLogs || []).reduce((sum: number, log: any) => {
         const problems = Number(log.problems_solved) || 0;
         return sum + problems;
-      }, 0) || 0;
-      
-      const totalTime = dailyLogs?.reduce((sum, log) => {
+      }, 0);
+
+      const totalTime = (dailyLogs || []).reduce((sum: number, log: any) => {
         const timeSpent = Number(log.time_spent_minutes) || 0;
         return sum + timeSpent;
-      }, 0) || 0;
-      
+      }, 0);
+
       const contestsParticipated = contestLogs?.length || 0;
 
-      // Get favorite topics
-      const topicCounts = dailyLogs?.reduce((acc: Record<string, number>, log) => {
+      // Favorite topics calculation
+      const topicCounts: Record<string, number> = {};
+      (dailyLogs || []).forEach((log: any) => {
         if (log.topic) {
           const problems = Number(log.problems_solved) || 0;
-          acc[log.topic] = (acc[log.topic] || 0) + problems;
+          topicCounts[log.topic] = (topicCounts[log.topic] || 0) + problems;
         }
-        return acc;
-      }, {}) || {};
+      });
 
       const favoriteTopics = Object.entries(topicCounts)
-        .sort(([,a], [,b]) => b - a)
+        .sort(([, a], [, b]) => b - a)
         .slice(0, 3)
         .map(([topic]) => topic);
 
@@ -110,16 +110,15 @@ export const Profile = () => {
         total_problems: totalProblems,
         total_time: totalTime,
         contests_participated: contestsParticipated,
-        current_streak: 0, // TODO: Calculate streak
+        current_streak: 0, // TODO: Add streak logic later
         favorite_topics: favoriteTopics
       });
-
     } catch (error) {
       console.error('Error fetching profile:', error);
       toast({
-        title: "Error",
-        description: "Failed to fetch profile data",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to fetch profile data',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -128,8 +127,8 @@ export const Profile = () => {
 
   const handleSaveProfile = async () => {
     if (!user) return;
-
     setSaving(true);
+
     try {
       const { error } = await supabaseClient
         .from('profiles')
@@ -144,22 +143,29 @@ export const Profile = () => {
       if (error) throw error;
 
       toast({
-        title: "Success",
-        description: "Profile updated successfully!",
+        title: 'Success',
+        description: 'Profile updated successfully!',
       });
     } catch (error) {
       console.error('Error saving profile:', error);
       toast({
-        title: "Error",
-        description: "Failed to update profile",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to update profile',
+        variant: 'destructive',
       });
     } finally {
       setSaving(false);
     }
   };
 
-  const userInitials = `${profile.first_name?.charAt(0) || ''}${profile.last_name?.charAt(0) || ''}`.toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'U';
+  // Calculate hours and minutes safely
+  const totalTimeNumber: number = Number(profile.total_time) || 0;
+  const totalHours: number = Math.floor(totalTimeNumber / 60);
+  const totalMinutes: number = totalTimeNumber % 60;
+
+  const userInitials =
+    (profile.first_name?.charAt(0) || '') + (profile.last_name?.charAt(0) || '') ||
+    user?.email?.charAt(0).toUpperCase() || 'U';
 
   if (loading) {
     return (
@@ -170,11 +176,6 @@ export const Profile = () => {
       </AppLayout>
     );
   }
-
-  // Calculate hours and minutes for display - ensure we're working with numbers
-  const totalTimeNumber = Number(profile.total_time) || 0;
-  const totalHours = Math.floor(totalTimeNumber / 60);
-  const totalMinutes = totalTimeNumber % 60;
 
   return (
     <AppLayout>
@@ -196,7 +197,7 @@ export const Profile = () => {
                 <div className="flex items-center space-x-4 mb-6">
                   <Avatar className="h-20 w-20">
                     <AvatarFallback className="text-2xl font-bold">
-                      {userInitials}
+                      {userInitials.toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div>
@@ -261,7 +262,9 @@ export const Profile = () => {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Time Spent</span>
-                  <span className="font-bold text-blue-600">{totalHours}h {totalMinutes}m</span>
+                  <span className="font-bold text-blue-600">
+                    {totalHours}h {totalMinutes}m
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Contests</span>
@@ -299,7 +302,7 @@ export const Profile = () => {
           </div>
         </div>
 
-        {/* Recent Activity Overview */}
+        {/* Account Overview */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
