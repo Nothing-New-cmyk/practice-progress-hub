@@ -299,7 +299,7 @@ export const Dashboard: React.FC = () => {
               </h2>
               <TopicProgress topics={summary.topicProgress} />
             </section>
-          </div>
+          </motion.div>
         </div>
 
         {/* Additional Analytics Row */}
