@@ -66,7 +66,7 @@ export const Dashboard: React.FC = () => {
     });
   };
 
-  // 1️⃣ Loading & Error Handling
+  // Loading & Error Handling
   if (loading) {
     return (
       <AppLayout>
@@ -271,7 +271,7 @@ export const Dashboard: React.FC = () => {
               </h2>
               <TopicProgress data={summary.topicProgress} />
             </section>
-          </div>
+          </motion.div>
         </div>
 
         {/* Additional Analytics Row */}
