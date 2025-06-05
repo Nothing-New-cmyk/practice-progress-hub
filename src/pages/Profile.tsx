@@ -162,9 +162,10 @@ export const Profile = () => {
     );
   }
 
-  // Calculate hours and minutes for display
-  const totalHours = Math.floor((profile.total_time || 0) / 60);
-  const totalMinutes = (profile.total_time || 0) % 60;
+  // Calculate hours and minutes for display - ensure we're working with numbers
+  const totalTimeMinutes = Number(profile.total_time) || 0;
+  const totalHours = Math.floor(totalTimeMinutes / 60);
+  const totalMinutes = totalTimeMinutes % 60;
 
   return (
     <AppLayout>
