@@ -11,6 +11,7 @@ import { NotificationsDropdown } from '@/components/ui/notifications-dropdown';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { QuickLogModal } from '@/components/ui/quick-log-modal';
+import logo from './favicon.png'
 import { 
   Menu, 
   PlusCircle, 
@@ -64,8 +65,8 @@ export const Navbar = () => {
                 aria-label="NoobsterDSA - Go to dashboard"
               >
                 <div className="relative">
-                  <div className="h-8 w-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md transition-all duration-200 group-hover:scale-105">
-                    <Code2 className="h-5 w-5 text-white" />
+                  <div className="h-8 w-8 rounded-lg bg-black flex items-center justify-center shadow-sm group-hover:shadow-md transition-all duration-200 group-hover:scale-105">
+                    <img src={logo} alt="NoobsterDSA Logo" className="h-5 w-5" />
                   </div>
                   <div className="absolute -top-1 -right-1 h-3 w-3 bg-green-500 rounded-full animate-pulse shadow-sm" aria-hidden="true"></div>
                 </div>
@@ -73,7 +74,7 @@ export const Navbar = () => {
                   <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent group-hover:from-blue-700 group-hover:to-purple-700 transition-colors">
                     NoobsterDSA
                   </h1>
-                  <p className="text-xs text-muted-foreground -mt-1 font-medium">Master Data Structures & Algorithms</p>
+                  <p className="text-xs text-muted-foreground -mt-1 font-medium">Patience & Consistency</p>
                 </div>
               </Link>
             </div>
