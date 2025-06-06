@@ -22,7 +22,6 @@ import {
   TrendingUp,
   X
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home, id: 'dashboard-nav' },
@@ -46,12 +45,6 @@ export const Navbar = () => {
 
   const handleQuickLog = () => {
     setIsQuickLogOpen(true);
-  };
-
-  const handleSearch = (query: string) => {
-    console.log('Searching for:', query);
-    // TODO: Implement actual search functionality
-    // navigate(`/search?q=${encodeURIComponent(query)}`);
   };
 
   return (
@@ -100,7 +93,7 @@ export const Navbar = () => {
 
             {/* Desktop Actions */}
             <div className="hidden md:flex items-center space-x-2">
-              <SearchBar onSearch={handleSearch} />
+              <SearchBar />
               <NotificationsDropdown />
               <Button
                 variant="ghost"
@@ -155,7 +148,7 @@ export const Navbar = () => {
 
                     {/* Mobile Actions */}
                     <div className="p-4 border-b space-y-3">
-                      <SearchBar onSearch={handleSearch} className="w-full" />
+                      <SearchBar />
                       <div className="flex items-center justify-between">
                         <NotificationsDropdown />
                         <Button
