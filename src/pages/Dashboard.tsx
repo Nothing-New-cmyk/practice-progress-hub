@@ -14,9 +14,11 @@ import { Button } from '@/components/ui/button';
 import { ActivityHeatmap } from '@/components/charts/ActivityHeatmap';
 import { DifficultyChart } from '@/components/charts/DifficultyChart';
 import { TopicProgress } from '@/components/features/TopicProgress';
+import { Progress } from '@/components/ui/progress';
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 import {
   Code2,
@@ -30,12 +32,33 @@ import {
   Calendar,
   FileText,
   Zap,
+  Target,
+  TrendingUp,
+  Star,
+  Award,
+  Timer,
+  Brain,
+  BarChart3,
+  Flame,
+  BookOpen,
+  Users,
 } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
   const { data, loading, refreshData } = useDashboardData();
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    // Welcome toast for first-time users
+    if (!loading && data.recentLogs.length === 0) {
+      toast({
+        title: "Welcome to NoobsterDSA! 🎉",
+        description: "Start logging your daily practice to track your progress and unlock achievements.",
+      });
+    }
+  }, [loading, data.recentLogs.length, toast]);
 
   // Loading & Error Handling
   if (loading) {
@@ -68,6 +91,12 @@ export const Dashboard: React.FC = () => {
   const problemsSparklineData = generateSparklineData(data.weeklyStats.problemsSolved);
   const hoursSparklineData = generateSparklineData(Math.floor(data.weeklyStats.timeSpent / 60));
 
+  // Calculate additional metrics
+  const averageProblemsPerDay = data.weeklyStats.problemsSolved / 7;
+  const averageTimePerProblem = data.weeklyStats.problemsSolved > 0 ? data.weeklyStats.timeSpent / data.weeklyStats.problemsSolved : 0;
+  const weeklyGoalProgress = data.weeklyGoals.length > 0 ? 
+    (data.weeklyGoals.filter(g => g.status === 'completed').length / data.weeklyGoals.length) * 100 : 0;
+
   return (
     <AppLayout>
       <div className="p-4 md:p-6 space-y-8 max-w-7xl mx-auto bg-background">
@@ -84,7 +113,7 @@ export const Dashboard: React.FC = () => {
           />
         </motion.div>
 
-        {/* Summary Cards */}
+        {/* Primary Stats Grid */}
         <motion.div
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
           initial={shouldReduceMotion ? {} : { opacity: 0, y: 20 }}
@@ -94,7 +123,13 @@ export const Dashboard: React.FC = () => {
           {/* Problems This Week */}
           <GlassmorphicCard
             as="button"
-            onClick={() => navigate('/daily-log')}
+            onClick={() => {
+              navigate('/daily-log');
+              toast({
+                title: "Daily Log",
+                description: "Log your coding practice here",
+              });
+            }}
             className="p-6 hover:shadow-xl transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
           >
             <div className="flex items-center justify-between">
@@ -103,6 +138,9 @@ export const Dashboard: React.FC = () => {
                 <div className="flex items-baseline space-x-2">
                   <span className="text-3xl font-bold">
                     {data.weeklyStats.problemsSolved}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    ({averageProblemsPerDay.toFixed(1)}/day)
                   </span>
                 </div>
               </div>
@@ -123,6 +161,9 @@ export const Dashboard: React.FC = () => {
                 <div className="flex items-baseline space-x-2">
                   <span className="text-3xl font-bold">
                     {Math.floor(data.weeklyStats.timeSpent / 60)}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    ({averageTimePerProblem.toFixed(0)}m/problem)
                   </span>
                 </div>
               </div>
@@ -149,6 +190,33 @@ export const Dashboard: React.FC = () => {
             />
           </motion.div>
 
+          {/* Weekly Goal Progress */}
+          <GlassmorphicCard className="p-6 hover:shadow-xl transition-all duration-300 group">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-muted-foreground">Weekly Progress</h3>
+                <Target className="h-4 w-4 text-purple-500" />
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-2xl font-bold">{weeklyGoalProgress.toFixed(0)}%</span>
+                    <Badge variant="outline">{data.weeklyGoals.filter(g => g.status === 'completed').length}/{data.weeklyGoals.length} goals</Badge>
+                  </div>
+                  <Progress value={weeklyGoalProgress} className="h-2" />
+                </div>
+              </div>
+            </div>
+          </GlassmorphicCard>
+        </motion.div>
+
+        {/* Secondary Stats Grid */}
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+          initial={shouldReduceMotion ? {} : { opacity: 0, y: 20 }}
+          animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
           {/* Badges Earned */}
           <GlassmorphicCard
             as="button"
@@ -157,19 +225,82 @@ export const Dashboard: React.FC = () => {
           >
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium text-muted-foreground">Badges Earned</h3>
+                <h3 className="text-sm font-medium text-muted-foreground">Achievements</h3>
                 <Trophy className="h-4 w-4 text-yellow-500" />
               </div>
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
-                  <Trophy className="h-8 w-8 text-yellow-500" />
+                  <Award className="h-8 w-8 text-yellow-500" />
                   <div>
-                    <p className="text-2xl font-bold">
-                      {data.badgesCount}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      View all achievements
-                    </p>
+                    <p className="text-2xl font-bold">{data.badgesCount}</p>
+                    <p className="text-xs text-muted-foreground">badges earned</p>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+          </GlassmorphicCard>
+
+          {/* Contest Performance */}
+          <GlassmorphicCard
+            as="button"
+            onClick={() => navigate('/contest-log')}
+            className="p-6 hover:shadow-xl transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-muted-foreground">Contests</h3>
+                <Users className="h-4 w-4 text-blue-500" />
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <Star className="h-8 w-8 text-blue-500" />
+                  <div>
+                    <p className="text-2xl font-bold">{data.contestsParticipated}</p>
+                    <p className="text-xs text-muted-foreground">participated</p>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+          </GlassmorphicCard>
+
+          {/* Learning Rate */}
+          <GlassmorphicCard className="p-6 hover:shadow-xl transition-all duration-300 group">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-muted-foreground">Learning Rate</h3>
+                <Brain className="h-4 w-4 text-purple-500" />
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <TrendingUp className="h-8 w-8 text-purple-500" />
+                  <div>
+                    <p className="text-2xl font-bold">{data.topicsData.length}</p>
+                    <p className="text-xs text-muted-foreground">topics active</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </GlassmorphicCard>
+
+          {/* Quick Analytics */}
+          <GlassmorphicCard
+            as="button"
+            onClick={() => navigate('/analytics')}
+            className="p-6 hover:shadow-xl transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-muted-foreground">Analytics</h3>
+                <BarChart3 className="h-4 w-4 text-indigo-500" />
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <Activity className="h-8 w-8 text-indigo-500" />
+                  <div>
+                    <p className="text-2xl font-bold">View</p>
+                    <p className="text-xs text-muted-foreground">detailed stats</p>
                   </div>
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
@@ -184,7 +315,7 @@ export const Dashboard: React.FC = () => {
           <motion.section
             initial={shouldReduceMotion ? {} : { opacity: 0, x: -20 }}
             animate={shouldReduceMotion ? {} : { opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
           >
             <ActivityHeatmap data={data.heatmapData} />
           </motion.section>
@@ -194,7 +325,7 @@ export const Dashboard: React.FC = () => {
             className="space-y-6"
             initial={shouldReduceMotion ? {} : { opacity: 0, x: 20 }}
             animate={shouldReduceMotion ? {} : { opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
           >
             <DifficultyChart data={data.difficultyData} />
             <TopicProgress topics={data.topicsData} />
@@ -207,7 +338,7 @@ export const Dashboard: React.FC = () => {
           <motion.div
             initial={shouldReduceMotion ? {} : { opacity: 0, y: 20 }}
             animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
           >
             <SummaryCard
               title="Weekly Goals"
@@ -273,6 +404,26 @@ export const Dashboard: React.FC = () => {
                     </div>
                   );
                 })}
+                {data.weeklyGoals.length === 0 && (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <Target className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>No weekly goals set</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2"
+                      onClick={() => {
+                        navigate('/weekly-goals');
+                        toast({
+                          title: "Weekly Goals",
+                          description: "Set up your first weekly goal!",
+                        });
+                      }}
+                    >
+                      Create Goal
+                    </Button>
+                  </div>
+                )}
               </div>
             </SummaryCard>
           </motion.div>
@@ -281,7 +432,7 @@ export const Dashboard: React.FC = () => {
           <motion.div
             initial={shouldReduceMotion ? {} : { opacity: 0, y: 20 }}
             animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
           >
             <EnhancedCard
               title="Recent Activity"
@@ -304,13 +455,30 @@ export const Dashboard: React.FC = () => {
                         {log.topic} • {new Date(log.date).toLocaleDateString()}
                       </p>
                     </div>
+                    <Badge variant="outline" className="text-xs">
+                      {log.problems_solved}
+                    </Badge>
                   </div>
                 ))}
                 {data.recentLogs.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground">
-                    <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <BookOpen className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p>No recent activity</p>
                     <p className="text-xs">Start logging your practice!</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-2"
+                      onClick={() => {
+                        navigate('/daily-log');
+                        toast({
+                          title: "Daily Log",
+                          description: "Log your first practice session!",
+                        });
+                      }}
+                    >
+                      Start Logging
+                    </Button>
                   </div>
                 )}
               </div>
@@ -322,7 +490,7 @@ export const Dashboard: React.FC = () => {
         <motion.div
           initial={shouldReduceMotion ? {} : { opacity: 0, y: 20 }}
           animate={shouldReduceMotion ? {} : { opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
+          transition={{ duration: 0.6, delay: 0.7 }}
         >
           <EnhancedCard
             title="Quick Actions"
@@ -334,7 +502,13 @@ export const Dashboard: React.FC = () => {
                 variant="default"
                 className="w-full justify-start"
                 size="sm"
-                onClick={() => navigate('/daily-log')}
+                onClick={() => {
+                  navigate('/daily-log');
+                  toast({
+                    title: "Daily Log",
+                    description: "Log your coding practice here",
+                  });
+                }}
               >
                 <Calendar className="h-4 w-4 mr-2" />
                 Log Today's Practice
@@ -343,7 +517,13 @@ export const Dashboard: React.FC = () => {
                 variant="outline"
                 className="w-full justify-start"
                 size="sm"
-                onClick={() => navigate('/contest-log')}
+                onClick={() => {
+                  navigate('/contest-log');
+                  toast({
+                    title: "Contest Log",
+                    description: "Track your contest participation",
+                  });
+                }}
               >
                 <Trophy className="h-4 w-4 mr-2" />
                 View Contest Schedule
@@ -352,7 +532,13 @@ export const Dashboard: React.FC = () => {
                 variant="outline"
                 className="w-full justify-start"
                 size="sm"
-                onClick={() => navigate('/weekly-goals')}
+                onClick={() => {
+                  navigate('/weekly-goals');
+                  toast({
+                    title: "Weekly Goals",
+                    description: "Review and set your goals",
+                  });
+                }}
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Weekly Review
