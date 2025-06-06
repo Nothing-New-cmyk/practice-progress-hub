@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { AppLayout } from '@/components/layouts/AppLayout';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -51,13 +51,7 @@ export const Analytics = () => {
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (user) {
-      fetchAnalyticsData();
-    }
-  }, [user]);
-
-  const fetchAnalyticsData = async () => {
+  const fetchAnalyticsData = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -118,7 +112,15 @@ export const Analytics = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, toast]);
+
+  useEffect(() => {
+    if (user) {
+      fetchAnalyticsData();
+    }
+  }, [user, fetchAnalyticsData]);
+
+  
 
   const generateHeatmapFromLogs = (logs: any[]) => {
     const today = new Date();
@@ -449,7 +451,7 @@ export const Analytics = () => {
         {/* Main Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="lg:col-span-2">
-            <ActivityHeatmap data={analyticsData.heatmapData} />
+            <ActivityHeatmap />
           </div>
           
           <DifficultyChart data={analyticsData.difficultyData} />
