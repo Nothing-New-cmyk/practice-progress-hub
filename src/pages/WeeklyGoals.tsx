@@ -256,39 +256,4 @@ export const WeeklyGoals = () => {
       </div>
     </AppLayout>
   );
-
-  function handleDeleteGoal(id: string) {
-    deleteGoal(id);
-  }
-
-  function getStatusIcon(status: string) {
-    switch (status) {
-      case 'completed': return CheckCircle;
-      case 'missed': return XCircle;
-      default: return Clock;
-    }
-  }
-
-  function getStatusColor(status: string) {
-    switch (status) {
-      case 'completed': return 'text-green-500';
-      case 'missed': return 'text-red-500';
-      default: return 'text-yellow-500';
-    }
-  }
-
-  function getStatusBadgeVariant(status: string) {
-    switch (status) {
-      case 'completed': return 'default' as const;
-      case 'missed': return 'destructive' as const;
-      default: return 'secondary' as const;
-    }
-  }
-
-  function saveWeeklyReview() {
-    toast({
-      title: "Review saved",
-      description: "Your weekly review has been saved successfully.",
-    });
-  }
 };
