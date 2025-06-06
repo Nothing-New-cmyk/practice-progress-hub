@@ -31,10 +31,16 @@ export const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ data }) => {
     }
   };
 
-  // Generate GitHub-style heatmap grid (53 weeks × 7 days)
-  const generateWeeksGrid = () => {
-    const weeks: HeatmapData[][] = [];
+  // Create a proper GitHub-style heatmap grid
+  const generateHeatmapGrid = () => {
     const today = new Date();
+    const oneYearAgo = new Date(today);
+    oneYearAgo.setFullYear(today.getFullYear() - 1);
+    
+    // Find the Sunday that starts our grid (start of the week containing one year ago)
+    const startDate = new Date(oneYearAgo);
+    const dayOfWeek = startDate.getDay();
+    startDate.setDate(startDate.getDate() - dayOfWeek);
     
     // Create a map for quick data lookup
     const dataMap = new Map();
@@ -42,50 +48,48 @@ export const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ data }) => {
       dataMap.set(item.date, item);
     });
 
-    // Find the Sunday that starts the grid (53 weeks ago from this Sunday)
-    const currentDayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    const startDate = new Date(today);
-    startDate.setDate(today.getDate() - currentDayOfWeek - (52 * 7)); // 52 weeks back to start of grid
-
-    // Generate 53 weeks of data
-    for (let week = 0; week < 53; week++) {
-      const weekData: HeatmapData[] = [];
+    const weeks: HeatmapData[][] = [];
+    const currentDate = new Date(startDate);
+    
+    // Generate exactly 53 weeks of data
+    while (weeks.length < 53) {
+      const week: HeatmapData[] = [];
       
+      // Generate 7 days for this week
       for (let day = 0; day < 7; day++) {
-        const currentDate = new Date(startDate);
-        currentDate.setDate(startDate.getDate() + (week * 7) + day);
+        const dateStr = currentDate.toISOString().split('T')[0];
         
-        // Don't show future dates beyond today
+        // Don't show future dates
         if (currentDate > today) {
-          weekData.push({
+          week.push({
             date: '',
             count: 0,
             level: 0
           });
-          continue;
-        }
-
-        const dateStr = currentDate.toISOString().split('T')[0];
-        const dayData = dataMap.get(dateStr);
-        
-        if (dayData) {
-          weekData.push(dayData);
         } else {
-          weekData.push({
-            date: dateStr,
-            count: 0,
-            level: 0
-          });
+          const dayData = dataMap.get(dateStr);
+          if (dayData) {
+            week.push(dayData);
+          } else {
+            week.push({
+              date: dateStr,
+              count: 0,
+              level: 0
+            });
+          }
         }
+        
+        // Move to next day
+        currentDate.setDate(currentDate.getDate() + 1);
       }
       
-      weeks.push(weekData);
+      weeks.push(week);
     }
 
     return weeks;
   };
 
-  const weeks = generateWeeksGrid();
+  const weeks = generateHeatmapGrid();
   const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   
@@ -93,19 +97,20 @@ export const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ data }) => {
   const getMonthLabels = () => {
     const labels: { month: string; position: number }[] = [];
     const today = new Date();
-    const currentMonth = today.getMonth();
     
-    // Show labels for months that appear in our 53-week grid
+    // Start from 12 months ago and work forward
     for (let i = 0; i < 12; i++) {
-      const monthIndex = (currentMonth - 11 + i + 12) % 12;
-      const position = Math.floor((i * 53) / 12);
+      const date = new Date(today);
+      date.setMonth(today.getMonth() - 11 + i);
+      const monthIndex = date.getMonth();
+      
       labels.push({
         month: monthLabels[monthIndex],
-        position: Math.max(0, Math.min(position, 52))
+        position: Math.floor((i * 53) / 12)
       });
     }
     
-    return labels.slice(0, 12); // Only show 12 months
+    return labels;
   };
 
   const monthPositions = getMonthLabels();
@@ -121,7 +126,7 @@ export const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ data }) => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <Activity className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-          {totalContributions} contributions in {currentYear}
+          {totalContributions} contributions in the last year
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -204,32 +209,26 @@ function calculateLongestStreak(data: HeatmapData[]): number {
   if (!data.length) return 0;
 
   // Sort data by date
-  const sortedData = [...data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  let maxStreak = 0;
-  let currentStreak = 0;
-  let lastDate: Date | null = null;
+  const sortedData = [...data]
+    .filter(item => item.count > 0)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  
+  if (!sortedData.length) return 0;
 
-  for (const item of sortedData) {
-    if (item.count > 0) {
-      const currentDate = new Date(item.date);
-      
-      if (lastDate) {
-        const dayDiff = Math.floor((currentDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
-        
-        if (dayDiff === 1) {
-          // Consecutive day
-          currentStreak++;
-        } else {
-          // Gap in streak, start new streak
-          currentStreak = 1;
-        }
-      } else {
-        // First active day
-        currentStreak = 1;
-      }
-      
+  let maxStreak = 1;
+  let currentStreak = 1;
+
+  for (let i = 1; i < sortedData.length; i++) {
+    const currentDate = new Date(sortedData[i].date);
+    const prevDate = new Date(sortedData[i - 1].date);
+    
+    const dayDiff = Math.floor((currentDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (dayDiff === 1) {
+      currentStreak++;
       maxStreak = Math.max(maxStreak, currentStreak);
-      lastDate = currentDate;
+    } else {
+      currentStreak = 1;
     }
   }
   
@@ -240,19 +239,25 @@ function calculateCurrentStreak(data: HeatmapData[]): number {
   if (!data.length) return 0;
 
   const today = new Date();
-  let streak = 0;
+  today.setHours(0, 0, 0, 0);
   
-  // Check each day going backwards from today
-  for (let i = 0; i < 365; i++) {
-    const checkDate = new Date(today);
-    checkDate.setDate(today.getDate() - i);
-    const dateStr = checkDate.toISOString().split('T')[0];
-    
+  let streak = 0;
+  let currentDate = new Date(today);
+  
+  // Check backwards from today
+  while (true) {
+    const dateStr = currentDate.toISOString().split('T')[0];
     const dayData = data.find(d => d.date === dateStr);
+    
     if (dayData && dayData.count > 0) {
       streak++;
-    } else if (i > 0) {
-      // Only break if we've moved past today and found a gap
+      currentDate.setDate(currentDate.getDate() - 1);
+    } else {
+      // If it's today and no activity, don't break the streak yet
+      if (streak === 0 && currentDate.getTime() === today.getTime()) {
+        currentDate.setDate(currentDate.getDate() - 1);
+        continue;
+      }
       break;
     }
   }

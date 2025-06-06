@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabaseClient } from '@/lib/supabase-utils';
@@ -108,7 +107,7 @@ export const useDashboardData = () => {
           { problemsSolved: 0, timeSpent: 0 }
         );
 
-      // Process heatmap data
+      // Process heatmap data - simplified and fixed
       const heatmapData = generateHeatmapData(allLogs || []);
 
       // Process difficulty data
@@ -182,10 +181,9 @@ export const useDashboardData = () => {
   };
 
   const generateHeatmapData = (logs: any[]) => {
-    const heatmapData = [];
-    const logMap = new Map();
+    // Create a map of date -> total problems solved for that date
+    const logMap = new Map<string, number>();
     
-    // Create a map of date -> problems solved
     logs.forEach(log => {
       const date = log.date;
       const existing = logMap.get(date) || 0;
@@ -193,13 +191,16 @@ export const useDashboardData = () => {
     });
 
     // Generate data for the last 365 days
+    const heatmapData = [];
     const today = new Date();
-    for (let i = 364; i >= 0; i--) {
+    
+    for (let i = 0; i < 365; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
       const count = logMap.get(dateStr) || 0;
       
+      // Calculate level based on problems solved
       let level: 0 | 1 | 2 | 3 | 4 = 0;
       if (count >= 1) level = 1;
       if (count >= 3) level = 2;
@@ -209,7 +210,8 @@ export const useDashboardData = () => {
       heatmapData.push({ date: dateStr, count, level });
     }
 
-    return heatmapData;
+    // Sort by date (oldest first) for proper processing
+    return heatmapData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   };
 
   const processDifficultyData = (logs: any[]) => {
