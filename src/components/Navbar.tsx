@@ -18,9 +18,10 @@ import {
   Calendar, 
   Target, 
   Settings, 
-  BarChart3,
+  Code2,
   TrendingUp,
-  X
+  X,
+  Zap
 } from 'lucide-react';
 
 const navigation = [
@@ -61,18 +62,20 @@ export const Navbar = () => {
             <div className="flex items-center">
               <Link 
                 to="/dashboard" 
-                className="flex items-center space-x-3 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg"
-                aria-label="DSA Tracker - Go to dashboard"
+                className="flex items-center space-x-3 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg px-2 py-1"
+                aria-label="NoobsterDSA - Go to dashboard"
               >
                 <div className="relative">
-                  <BarChart3 className="h-8 w-8 text-primary group-hover:text-primary/80 transition-colors" />
-                  <div className="absolute -top-1 -right-1 h-3 w-3 bg-green-500 rounded-full animate-pulse" aria-hidden="true"></div>
+                  <div className="h-8 w-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
+                    <Code2 className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="absolute -top-1 -right-1 h-3 w-3 bg-green-500 rounded-full animate-pulse shadow-sm" aria-hidden="true"></div>
                 </div>
                 <div className="hidden sm:block">
-                  <h1 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors">
-                    DSA Tracker
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent group-hover:from-blue-700 group-hover:to-purple-700 transition-colors">
+                    NoobsterDSA
                   </h1>
-                  <p className="text-xs text-muted-foreground -mt-1">Level up your coding</p>
+                  <p className="text-xs text-muted-foreground -mt-1 font-medium">Master Data Structures & Algorithms</p>
                 </div>
               </Link>
             </div>
@@ -92,18 +95,18 @@ export const Navbar = () => {
             </div>
 
             {/* Desktop Actions */}
-            <div className="hidden md:flex items-center space-x-2">
+            <div className="hidden md:flex items-center space-x-3">
               <SearchBar />
               <NotificationsDropdown />
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleQuickLog}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 hover:bg-accent/80 transition-colors"
                 aria-label="Quick log entry"
               >
-                <PlusCircle className="h-4 w-4" />
-                <span className="hidden lg:inline">Quick Log</span>
+                <Zap className="h-4 w-4" />
+                <span className="hidden lg:inline font-medium">Quick Log</span>
               </Button>
               <ThemeToggle />
               <ProfileDropdown onSignOut={handleSignOut} />
@@ -133,21 +136,23 @@ export const Navbar = () => {
                 >
                   <div className="flex flex-col h-full">
                     {/* Mobile Header */}
-                    <div className="flex items-center justify-between p-6 border-b">
+                    <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50">
                       <div className="flex items-center space-x-3">
                         <div className="relative">
-                          <BarChart3 className="h-8 w-8 text-primary" />
+                          <div className="h-8 w-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-sm">
+                            <Code2 className="h-5 w-5 text-white" />
+                          </div>
                           <div className="absolute -top-1 -right-1 h-3 w-3 bg-green-500 rounded-full" aria-hidden="true"></div>
                         </div>
                         <div>
-                          <h2 className="text-lg font-bold text-foreground">DSA Tracker</h2>
-                          <p className="text-sm text-muted-foreground">Level up your coding</p>
+                          <h2 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">NoobsterDSA</h2>
+                          <p className="text-sm text-muted-foreground font-medium">Master DSA</p>
                         </div>
                       </div>
                     </div>
 
                     {/* Mobile Actions */}
-                    <div className="p-4 border-b space-y-3">
+                    <div className="p-4 border-b space-y-3 bg-gray-50/50 dark:bg-gray-900/50">
                       <SearchBar />
                       <div className="flex items-center justify-between">
                         <NotificationsDropdown />
@@ -157,7 +162,7 @@ export const Navbar = () => {
                           onClick={handleQuickLog}
                           className="flex items-center gap-2"
                         >
-                          <PlusCircle className="h-4 w-4" />
+                          <Zap className="h-4 w-4" />
                           Quick Log
                         </Button>
                       </div>
@@ -181,7 +186,7 @@ export const Navbar = () => {
                     </nav>
 
                     {/* Mobile Footer */}
-                    <div className="p-4 border-t">
+                    <div className="p-4 border-t bg-gray-50/50 dark:bg-gray-900/50">
                       <ProfileDropdown onSignOut={handleSignOut} />
                     </div>
                   </div>

@@ -1,5 +1,4 @@
 
-import { useState } from 'react';
 import { AppLayout } from '@/components/layouts/AppLayout';
 import { SectionHeader } from '@/components/ui/section-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,74 +7,55 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { useWeeklyGoals } from '@/hooks/useWeeklyGoals';
 import { useToast } from '@/hooks/use-toast';
-import { Target, Plus, Edit, Trash2, CheckCircle, Clock, XCircle } from 'lucide-react';
-
-interface WeeklyGoal {
-  id: number;
-  goal: string;
-  target: number;
-  current: number;
-  status: 'in_progress' | 'completed' | 'missed';
-}
+import { Target, Plus, Trash2, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { useState } from 'react';
 
 export const WeeklyGoals = () => {
   const { toast } = useToast();
-  const [goals, setGoals] = useState<WeeklyGoal[]>([
-    { id: 1, goal: 'Solve 20 Medium Problems', target: 20, current: 14, status: 'in_progress' },
-    { id: 2, goal: 'Complete 5 Contest Problems', target: 5, current: 5, status: 'completed' },
-    { id: 3, goal: 'Study Dynamic Programming', target: 1, current: 0, status: 'missed' }
-  ]);
-
+  const { goals, loading, creating, createGoal, updateGoal, deleteGoal } = useWeeklyGoals();
+  
   const [newGoal, setNewGoal] = useState({
-    goal: '',
-    target: ''
+    goal_description: '',
+    target_value: '',
+    week_start_date: new Date().toISOString().split('T')[0]
   });
 
   const [weeklyReview, setWeeklyReview] = useState('');
 
-  const handleAddGoal = (e: React.FormEvent) => {
+  const handleAddGoal = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newGoal.goal || !newGoal.target) return;
+    if (!newGoal.goal_description || !newGoal.target_value) return;
 
-    const goal: WeeklyGoal = {
-      id: Date.now(),
-      goal: newGoal.goal,
-      target: parseInt(newGoal.target),
-      current: 0,
-      status: 'in_progress'
-    };
+    const result = await createGoal({
+      goal_description: newGoal.goal_description,
+      target_value: parseInt(newGoal.target_value),
+      current_value: 0,
+      status: 'in_progress',
+      week_start_date: newGoal.week_start_date,
+      review_notes: null
+    });
 
-    setGoals(prev => [...prev, goal]);
-    setNewGoal({ goal: '', target: '' });
+    if (result?.success) {
+      setNewGoal({ goal_description: '', target_value: '', week_start_date: new Date().toISOString().split('T')[0] });
+    }
+  };
+
+  const updateGoalProgress = async (id: string, newCurrent: number, targetValue: number) => {
+    let newStatus = 'in_progress';
+    if (newCurrent >= targetValue) {
+      newStatus = 'completed';
+    }
     
-    toast({
-      title: "Goal added",
-      description: "Your new weekly goal has been created successfully.",
+    await updateGoal(id, { 
+      current_value: newCurrent,
+      status: newStatus 
     });
   };
 
-  const updateGoalProgress = (id: number, newCurrent: number) => {
-    setGoals(prev => prev.map(goal => {
-      if (goal.id === id) {
-        const updated = { ...goal, current: newCurrent };
-        if (newCurrent >= goal.target) {
-          updated.status = 'completed';
-        } else {
-          updated.status = 'in_progress';
-        }
-        return updated;
-      }
-      return goal;
-    }));
-  };
-
-  const deleteGoal = (id: number) => {
-    setGoals(prev => prev.filter(goal => goal.id !== id));
-    toast({
-      title: "Goal deleted",
-      description: "The goal has been removed successfully.",
-    });
+  const handleDeleteGoal = async (id: string) => {
+    await deleteGoal(id);
   };
 
   const getStatusIcon = (status: string) => {
@@ -102,6 +82,28 @@ export const WeeklyGoals = () => {
     }
   };
 
+  const saveWeeklyReview = () => {
+    // This would typically save to the database
+    toast({
+      title: "Review saved",
+      description: "Your weekly review has been saved successfully.",
+    });
+  };
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="p-4 md:p-6 space-y-8 max-w-4xl mx-auto">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+            <div className="h-32 bg-gray-200 rounded"></div>
+            <div className="h-64 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <div className="p-4 md:p-6 space-y-8 max-w-4xl mx-auto">
@@ -127,8 +129,8 @@ export const WeeklyGoals = () => {
                   <Input
                     id="goalDescription"
                     placeholder="e.g., Solve 15 Dynamic Programming problems"
-                    value={newGoal.goal}
-                    onChange={(e) => setNewGoal(prev => ({ ...prev, goal: e.target.value }))}
+                    value={newGoal.goal_description}
+                    onChange={(e) => setNewGoal(prev => ({ ...prev, goal_description: e.target.value }))}
                     required
                   />
                 </div>
@@ -139,14 +141,24 @@ export const WeeklyGoals = () => {
                     type="number"
                     min="1"
                     placeholder="15"
-                    value={newGoal.target}
-                    onChange={(e) => setNewGoal(prev => ({ ...prev, target: e.target.value }))}
+                    value={newGoal.target_value}
+                    onChange={(e) => setNewGoal(prev => ({ ...prev, target_value: e.target.value }))}
                     required
                   />
                 </div>
               </div>
-              <Button type="submit" className="w-full md:w-auto">
-                Add Goal
+              <div>
+                <Label htmlFor="weekStartDate">Week Start Date</Label>
+                <Input
+                  id="weekStartDate"
+                  type="date"
+                  value={newGoal.week_start_date}
+                  onChange={(e) => setNewGoal(prev => ({ ...prev, week_start_date: e.target.value }))}
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full md:w-auto" disabled={creating}>
+                {creating ? 'Adding...' : 'Add Goal'}
               </Button>
             </form>
           </CardContent>
@@ -155,12 +167,12 @@ export const WeeklyGoals = () => {
         {/* Current Goals */}
         <Card>
           <CardHeader>
-            <CardTitle>This Week's Goals</CardTitle>
+            <CardTitle>Your Weekly Goals</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               {goals.map((goal) => {
-                const progress = (goal.current / goal.target) * 100;
+                const progress = (goal.current_value / goal.target_value) * 100;
                 const StatusIcon = getStatusIcon(goal.status);
                 const statusColor = getStatusColor(goal.status);
                 
@@ -169,8 +181,11 @@ export const WeeklyGoals = () => {
                     <div className="flex items-center space-x-3 flex-1">
                       <StatusIcon className={`h-5 w-5 ${statusColor}`} />
                       <div className="flex-1">
-                        <p className="font-medium text-sm">{goal.goal}</p>
-                        <div className="flex items-center space-x-4 mt-2">
+                        <p className="font-medium text-sm">{goal.goal_description}</p>
+                        <p className="text-xs text-muted-foreground mb-2">
+                          Week starting: {new Date(goal.week_start_date).toLocaleDateString()}
+                        </p>
+                        <div className="flex items-center space-x-4">
                           <div className="flex items-center space-x-2">
                             <div className="w-32 bg-gray-200 rounded-full h-2">
                               <div 
@@ -179,7 +194,7 @@ export const WeeklyGoals = () => {
                               />
                             </div>
                             <span className="text-sm text-muted-foreground">
-                              {goal.current}/{goal.target}
+                              {goal.current_value}/{goal.target_value}
                             </span>
                           </div>
                           <Badge variant={getStatusBadgeVariant(goal.status)}>
@@ -192,12 +207,12 @@ export const WeeklyGoals = () => {
                       <Input
                         type="number"
                         min="0"
-                        max={goal.target * 2}
-                        value={goal.current}
-                        onChange={(e) => updateGoalProgress(goal.id, parseInt(e.target.value) || 0)}
+                        max={goal.target_value * 2}
+                        value={goal.current_value}
+                        onChange={(e) => updateGoalProgress(goal.id, parseInt(e.target.value) || 0, goal.target_value)}
                         className="w-20"
                       />
-                      <Button variant="ghost" size="sm" onClick={() => deleteGoal(goal.id)}>
+                      <Button variant="ghost" size="sm" onClick={() => handleDeleteGoal(goal.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -208,7 +223,7 @@ export const WeeklyGoals = () => {
               {goals.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No goals set for this week. Add your first goal above!</p>
+                  <p>No goals set yet. Add your first goal above!</p>
                 </div>
               )}
             </div>
@@ -232,12 +247,7 @@ export const WeeklyGoals = () => {
                   rows={6}
                 />
               </div>
-              <Button onClick={() => {
-                toast({
-                  title: "Review saved",
-                  description: "Your weekly review has been saved successfully.",
-                });
-              }}>
+              <Button onClick={saveWeeklyReview}>
                 Save Weekly Review
               </Button>
             </div>
