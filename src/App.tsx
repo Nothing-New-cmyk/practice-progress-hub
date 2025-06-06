@@ -19,6 +19,7 @@ import { Analytics } from '@/pages/Analytics';
 import { Profile } from '@/pages/Profile';
 import { Settings } from '@/pages/Settings';
 import { Achievements } from '@/pages/Achievements';
+import { Notifications } from '@/pages/Notifications';
 import NotFound from '@/pages/NotFound';
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ function App() {
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               <Route path="/achievements" element={<ProtectedRoute><Achievements /></ProtectedRoute>} />
+              <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
               
               {/* 404 route */}
               <Route path="*" element={<NotFound />} />

@@ -13,7 +13,6 @@ import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { QuickLogModal } from '@/components/ui/quick-log-modal';
 import { 
   Menu, 
-  Home, 
   PlusCircle, 
   Calendar, 
   Target, 
@@ -25,7 +24,6 @@ import {
 } from 'lucide-react';
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: Home, id: 'dashboard-nav' },
   { name: 'Daily Log', href: '/daily-log', icon: PlusCircle, id: 'daily-log-nav' },
   { name: 'Contest Log', href: '/contest-log', icon: Calendar, id: 'contest-log-nav' },
   { name: 'Weekly Goals', href: '/weekly-goals', icon: Target, id: 'weekly-goals-nav' },
@@ -58,7 +56,7 @@ export const Navbar = () => {
       >
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
-            {/* Logo and Brand */}
+            {/* Logo and Brand - Now clickable */}
             <div className="flex items-center">
               <Link 
                 to="/dashboard" 
@@ -66,7 +64,7 @@ export const Navbar = () => {
                 aria-label="NoobsterDSA - Go to dashboard"
               >
                 <div className="relative">
-                  <div className="h-8 w-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
+                  <div className="h-8 w-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow-md transition-all duration-200 group-hover:scale-105">
                     <Code2 className="h-5 w-5 text-white" />
                   </div>
                   <div className="absolute -top-1 -right-1 h-3 w-3 bg-green-500 rounded-full animate-pulse shadow-sm" aria-hidden="true"></div>
@@ -80,7 +78,7 @@ export const Navbar = () => {
               </Link>
             </div>
 
-            {/* Desktop Navigation */}
+            {/* Desktop Navigation - Icon only with tooltips */}
             <div className="hidden md:flex items-center space-x-1">
               {navigation.map((item) => (
                 <NavItem
