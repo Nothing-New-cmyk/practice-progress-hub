@@ -31,22 +31,23 @@ export const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ data }) => {
     }
   };
 
-  // Generate 53 weeks (371 days) ending with today - like GitHub
+  // Generate GitHub-style heatmap grid (53 weeks × 7 days)
   const generateWeeksGrid = () => {
     const weeks: HeatmapData[][] = [];
     const today = new Date();
-    const endDate = new Date(today);
     
-    // Start from Sunday of the current week
-    const currentDay = today.getDay();
-    const startDate = new Date(today);
-    startDate.setDate(today.getDate() - currentDay - (52 * 7)); // 52 weeks back + current week offset
-
+    // Create a map for quick data lookup
     const dataMap = new Map();
     data.forEach(item => {
       dataMap.set(item.date, item);
     });
 
+    // Find the Sunday that starts the grid (53 weeks ago from this Sunday)
+    const currentDayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - currentDayOfWeek - (52 * 7)); // 52 weeks back to start of grid
+
+    // Generate 53 weeks of data
     for (let week = 0; week < 53; week++) {
       const weekData: HeatmapData[] = [];
       
@@ -54,7 +55,7 @@ export const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ data }) => {
         const currentDate = new Date(startDate);
         currentDate.setDate(startDate.getDate() + (week * 7) + day);
         
-        // Don't show future dates
+        // Don't show future dates beyond today
         if (currentDate > today) {
           weekData.push({
             date: '',
@@ -88,6 +89,27 @@ export const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ data }) => {
   const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   
+  // Calculate month positions for labels
+  const getMonthLabels = () => {
+    const labels: { month: string; position: number }[] = [];
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    
+    // Show labels for months that appear in our 53-week grid
+    for (let i = 0; i < 12; i++) {
+      const monthIndex = (currentMonth - 11 + i + 12) % 12;
+      const position = Math.floor((i * 53) / 12);
+      labels.push({
+        month: monthLabels[monthIndex],
+        position: Math.max(0, Math.min(position, 52))
+      });
+    }
+    
+    return labels.slice(0, 12); // Only show 12 months
+  };
+
+  const monthPositions = getMonthLabels();
+  
   // Calculate stats
   const totalContributions = data.reduce((sum, day) => sum + day.count, 0);
   const currentYear = new Date().getFullYear();
@@ -106,9 +128,15 @@ export const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ data }) => {
         <div className="space-y-4">
           {/* Month labels */}
           <div className="flex justify-start text-xs text-gray-500 dark:text-gray-400 ml-8">
-            <div className="grid grid-cols-12 gap-1 flex-1">
-              {monthLabels.map((month, index) => (
-                <span key={index} className="text-center">{month}</span>
+            <div className="relative flex-1" style={{ minWidth: '636px' }}>
+              {monthPositions.map((label, index) => (
+                <span 
+                  key={index} 
+                  className="absolute"
+                  style={{ left: `${(label.position * 12)}px` }}
+                >
+                  {label.month}
+                </span>
               ))}
             </div>
           </div>
@@ -173,16 +201,35 @@ export const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ data }) => {
 
 // Helper functions
 function calculateLongestStreak(data: HeatmapData[]): number {
-  const sortedData = data.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  if (!data.length) return 0;
+
+  // Sort data by date
+  const sortedData = [...data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   let maxStreak = 0;
   let currentStreak = 0;
-  
-  for (let i = 0; i < sortedData.length; i++) {
-    if (sortedData[i].count > 0) {
-      currentStreak++;
+  let lastDate: Date | null = null;
+
+  for (const item of sortedData) {
+    if (item.count > 0) {
+      const currentDate = new Date(item.date);
+      
+      if (lastDate) {
+        const dayDiff = Math.floor((currentDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (dayDiff === 1) {
+          // Consecutive day
+          currentStreak++;
+        } else {
+          // Gap in streak, start new streak
+          currentStreak = 1;
+        }
+      } else {
+        // First active day
+        currentStreak = 1;
+      }
+      
       maxStreak = Math.max(maxStreak, currentStreak);
-    } else {
-      currentStreak = 0;
+      lastDate = currentDate;
     }
   }
   
@@ -190,9 +237,12 @@ function calculateLongestStreak(data: HeatmapData[]): number {
 }
 
 function calculateCurrentStreak(data: HeatmapData[]): number {
+  if (!data.length) return 0;
+
   const today = new Date();
   let streak = 0;
   
+  // Check each day going backwards from today
   for (let i = 0; i < 365; i++) {
     const checkDate = new Date(today);
     checkDate.setDate(today.getDate() - i);
@@ -201,7 +251,8 @@ function calculateCurrentStreak(data: HeatmapData[]): number {
     const dayData = data.find(d => d.date === dateStr);
     if (dayData && dayData.count > 0) {
       streak++;
-    } else {
+    } else if (i > 0) {
+      // Only break if we've moved past today and found a gap
       break;
     }
   }

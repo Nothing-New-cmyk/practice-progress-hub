@@ -73,8 +73,14 @@ export const useDashboardData = () => {
 
       // Get current week's start and end dates
       const now = new Date();
-      const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
-      const weekEnd = new Date(now.setDate(now.getDate() - now.getDay() + 6));
+      const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - dayOfWeek);
+      weekStart.setHours(0, 0, 0, 0);
+      
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      weekEnd.setHours(23, 59, 59, 999);
 
       // Fetch all daily logs for comprehensive analysis
       const { data: allLogs, error: logsError } = await supabaseClient
@@ -83,12 +89,15 @@ export const useDashboardData = () => {
         .eq('user_id', user.id)
         .order('date', { ascending: false });
 
-      if (logsError) throw logsError;
+      if (logsError) {
+        console.error('Error fetching daily logs:', logsError);
+        throw logsError;
+      }
 
-      // Fetch weekly stats
+      // Process weekly stats
       const weeklyStats = (allLogs || [])
         .filter(log => {
-          const logDate = new Date(log.date);
+          const logDate = new Date(log.date + 'T00:00:00');
           return logDate >= weekStart && logDate <= weekEnd;
         })
         .reduce(
@@ -114,7 +123,9 @@ export const useDashboardData = () => {
         .select('id')
         .eq('user_id', user.id);
 
-      if (contestError) throw contestError;
+      if (contestError) {
+        console.error('Error fetching contest logs:', contestError);
+      }
 
       // Calculate current streak
       const currentStreak = calculateStreak(allLogs || []);
@@ -127,7 +138,9 @@ export const useDashboardData = () => {
         .order('created_at', { ascending: false })
         .limit(5);
 
-      if (goalsError) throw goalsError;
+      if (goalsError) {
+        console.error('Error fetching weekly goals:', goalsError);
+      }
 
       // Fetch badges count
       const { data: badgesData, error: badgesError } = await supabaseClient
@@ -135,7 +148,9 @@ export const useDashboardData = () => {
         .select('id')
         .eq('user_id', user.id);
 
-      if (badgesError) throw badgesError;
+      if (badgesError) {
+        console.error('Error fetching badges:', badgesError);
+      }
 
       setData({
         weeklyStats,
@@ -158,7 +173,7 @@ export const useDashboardData = () => {
       console.error('Error fetching dashboard data:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch dashboard data",
+        description: "Failed to fetch dashboard data. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -179,7 +194,7 @@ export const useDashboardData = () => {
 
     // Generate data for the last 365 days
     const today = new Date();
-    for (let i = 0; i < 365; i++) {
+    for (let i = 364; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(today.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
@@ -194,7 +209,7 @@ export const useDashboardData = () => {
       heatmapData.push({ date: dateStr, count, level });
     }
 
-    return heatmapData.reverse(); // Sort chronologically
+    return heatmapData;
   };
 
   const processDifficultyData = (logs: any[]) => {
@@ -211,7 +226,7 @@ export const useDashboardData = () => {
       { difficulty: 'Easy', count: difficultyCounts.easy, color: '#10B981' },
       { difficulty: 'Medium', count: difficultyCounts.medium, color: '#F59E0B' },
       { difficulty: 'Hard', count: difficultyCounts.hard, color: '#EF4444' }
-    ];
+    ].filter(item => item.count > 0); // Only show difficulties with data
   };
 
   const processTopicsData = (logs: any[]) => {
@@ -238,19 +253,20 @@ export const useDashboardData = () => {
   const calculateStreak = (logs: any[]) => {
     if (!logs.length) return 0;
 
-    const sortedLogs = logs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    let streak = 0;
     const today = new Date();
+    let streak = 0;
     
+    // Check each day going backwards from today
     for (let i = 0; i < 365; i++) {
       const checkDate = new Date(today);
       checkDate.setDate(today.getDate() - i);
       const dateStr = checkDate.toISOString().split('T')[0];
       
-      const logForDate = sortedLogs.find(log => log.date === dateStr);
+      const logForDate = logs.find(log => log.date === dateStr);
       if (logForDate && logForDate.problems_solved > 0) {
         streak++;
-      } else {
+      } else if (i > 0) {
+        // Only break if we've moved past today and found a gap
         break;
       }
     }
